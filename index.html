@@ -369,7 +369,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
     <div>
       <div class="tbl-wrap">
         <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--gold2)">Últimos 8 Pagos</div>
-        <table><thead><tr><th>Nombre</th><th>Monto</th><th>Mes</th></tr></thead>
+        <table><thead><tr><th>Nombre</th><th>Monto</th><th>Mes</th><th>Registró</th></tr></thead>
         <tbody id="tbl-ultpagos"></tbody></table>
       </div>
     </div>
@@ -445,7 +445,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>N° Socio</th><th>Nombre</th><th>Mes</th><th>Monto</th><th>Descuento</th><th>Referencia</th><th>Fecha</th><th>Academia</th><th></th></tr></thead>
+      <thead><tr><th>N° Socio</th><th>Nombre</th><th>Mes</th><th>Monto</th><th>Descuento</th><th>Referencia</th><th>Fecha Pago</th><th>Academia</th><th>Registrado por</th><th>Fecha Registro</th><th></th></tr></thead>
       <tbody id="tabla-pagos"></tbody>
     </table>
   </div>
@@ -732,9 +732,12 @@ function renderInicio() {
 
   const ult=[...pagos].slice(-8).reverse();
   document.getElementById('tbl-ultpagos').innerHTML=ult.map(p=>`
-    <tr><td class="mc" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.NOMBRE}</td>
-    <td style="color:var(--green2);font-weight:600">${fmt$(p.MONTO)}</td>
-    <td style="color:var(--text3)">${p.MES||'—'}</td></tr>`).join('');
+    <tr>
+      <td class="mc" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="verSocio('${p.NS}')" title="Ver ficha de ${p.NOMBRE}">${p.NOMBRE}</td>
+      <td style="color:var(--green2);font-weight:600">${fmt$(p.MONTO)}</td>
+      <td style="color:var(--text3)">${p.MES||'—'}</td>
+      <td>${p.REGISTRADO_POR?`<div style="display:flex;align-items:center;gap:5px" title="${p.FECHA_REGISTRO||''} ${p.HORA_REGISTRO||''}"><div style="width:20px;height:20px;border-radius:50%;background:var(--gold);color:#000;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(p.REGISTRADO_POR||'?')[0]}</div><span style="font-size:11px;color:var(--text2)">${p.REGISTRADO_POR}</span></div>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
+    </tr>`).join('');
 }
 
 // ═══════════════════════════ ALERTAS ═══════════════════════════
@@ -881,13 +884,15 @@ function renderPagos() {
   if(!slice.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">💳</div><p>Sin resultados</p></div></td></tr>`;} else {
     tbody.innerHTML=slice.map(p=>`<tr>
       <td><strong style="color:var(--gold2)">#${p.NS}</strong></td>
-      <td class="mc">${p.NOMBRE}</td>
+      <td class="mc" style="cursor:pointer" onclick="verSocio('${p.NS}')">${p.NOMBRE}</td>
       <td>${p.MES||'—'}</td>
       <td style="color:var(--green2);font-weight:600">${fmt$(p.MONTO)}</td>
       <td>${p.DESCUENTO&&p.DESCUENTO!=='NO APLICA'?`<span class="badge b-blue">${p.DESCUENTO}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
       <td style="color:var(--text3);font-size:12px">${p.REFERENCIA||'—'}</td>
       <td style="color:var(--text3)">${p.FECHA_PAGO||'—'}</td>
       <td><span class="badge b-gold">${p.ACADEMIA||'—'}</span></td>
+      <td>${p.REGISTRADO_POR?`<div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:var(--gold);color:#000;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;flex-shrink:0">${(p.REGISTRADO_POR||'?')[0]}</div><span style="color:var(--text2);font-size:12px">${p.REGISTRADO_POR}</span></div>`:'<span style="color:var(--text3)">—</span>'}</td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${p.FECHA_REGISTRO?p.FECHA_REGISTRO+' '+p.HORA_REGISTRO:'—'}</td>
       <td><button class="btn btn-red btn-sm" onclick="eliminarPago(${pagos.indexOf(p)})">🗑</button></td>
     </tr>`).join('');
   }
@@ -935,7 +940,7 @@ function verSocio(ns) {
     </div>
     <div class="stitle">Historial de Pagos (${ps.length})</div>
     ${ps.length?`<div style="overflow-x:auto"><table class="pmini">
-      <thead><tr><th>Mes</th><th>Monto</th><th>Inscripción</th><th>Seguro</th><th>Descuento</th><th>Ref.</th><th>Fecha</th></tr></thead>
+      <thead><tr><th>Mes</th><th>Monto</th><th>Inscripción</th><th>Seguro</th><th>Descuento</th><th>Ref.</th><th>Fecha</th><th>Registrado por</th><th>Hora</th></tr></thead>
       <tbody>${ps.map(p=>`<tr>
         <td>${p.MES||'—'}</td>
         <td style="color:var(--green2)">${fmt$(p.MONTO)}</td>
@@ -1058,7 +1063,11 @@ function guardarPago(imprimir=true) {
     FECHA_PAGO:document.getElementById('p-fecha').value,
     DESCUENTO:document.getElementById('p-descuento').value||'NO APLICA',
     ACADEMIA:s?s.ACADEMIA:'',
-    CATEGORIA:s?s.CATEGORIA:''
+    CATEGORIA:s?s.CATEGORIA:'',
+    REGISTRADO_POR: sesionActual ? sesionActual.nombre : '—',
+    ROL_REGISTRO: sesionActual ? sesionActual.rol : '—',
+    FECHA_REGISTRO: new Date().toLocaleDateString('es-MX'),
+    HORA_REGISTRO: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
   };
   const venc=document.getElementById('p-vencimiento').value;
   if(venc && s){ s.VENCIMIENTO=venc; }
