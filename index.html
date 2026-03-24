@@ -199,6 +199,47 @@ input[readonly]{opacity:.55;cursor:default}
 .pmini tr:last-child td{border-bottom:none}
 
 
+
+
+/* ── REPORTES ── */
+.rep-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.rep-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
+.rep-card::after{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.rep-card.gold::after{background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.rep-card.green::after{background:linear-gradient(90deg,var(--green),var(--green2))}
+.rep-card.blue::after{background:linear-gradient(90deg,var(--blue),var(--blue2))}
+.rep-card.orange::after{background:linear-gradient(90deg,#e67e22,#f39c12)}
+.rep-card .rv{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;margin-bottom:2px}
+.rep-card.gold .rv{color:var(--gold2)}
+.rep-card.green .rv{color:var(--green2)}
+.rep-card.blue .rv{color:var(--blue2)}
+.rep-card.orange .rv{color:#f39c12}
+.rep-card .rl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+.rep-card .rsub{font-size:12px;color:var(--text3);margin-top:4px}
+.periodo-tabs{display:flex;gap:4px;margin-bottom:20px;background:var(--bg3);padding:4px;border-radius:10px;width:fit-content}
+.ptab{padding:8px 20px;border-radius:8px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-weight:600;font-family:'Outfit',sans-serif;transition:all .2s}
+.ptab.active{background:var(--bg2);color:var(--gold2);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.corte-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px;margin-bottom:20px}
+.corte-box-title{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--gold2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.corte-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.corte-row:last-child{border-bottom:none}
+.corte-row .cr-lbl{color:var(--text2)}
+.corte-row .cr-val{font-weight:600;color:var(--text)}
+.corte-total{background:var(--bg3);border-radius:8px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.corte-total .ct-lbl{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:var(--text3)}
+.corte-total .ct-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--green2)}
+.pend-item{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.pend-item:hover{background:var(--bg3)}
+.pend-item:last-child{border-bottom:none}
+
+/* ── SEGURO ── */
+.b-pagado{background:rgba(46,204,113,.12);color:var(--green2)}
+.b-pendiente{background:rgba(230,126,34,.12);color:var(--orange)}
+.b-vencido-seg{background:rgba(231,76,60,.12);color:var(--red2)}
+.seguro-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:16px}
+.seguro-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.seguro-card-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--text3)}
+
 /* ── LOGIN SCREEN ── */
 .login-screen{position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;align-items:center;justify-content:center}
 .login-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:40px 44px;width:100%;max-width:400px;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.7)}
@@ -336,10 +377,13 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   <div class="nav-section" style="margin-top:8px">Instalaciones</div>
   <div class="nav-item" onclick="showView('lockers')" id="nav-lockers"><span class="ni">🔒</span>Lockers</div>
 
+  <div class="nav-section" style="margin-top:8px">Reportes</div>
+  <div class="nav-item" onclick="showView('reportes')" id="nav-reportes"><span class="ni">📈</span>Cortes y Reportes</div>
+  <div class="nav-item" onclick="showView('pendientes')" id="nav-pendientes"><span class="ni">⚠️</span>Pagos Pendientes <span class="nav-badge" id="badge-pendientes">0</span></div>
   <div class="nav-section" style="margin-top:8px">Sistema</div>
   <div class="nav-item" onclick="showView('log')" id="nav-log"><span class="ni">📋</span>Log de Actividad</div>
   <div class="nav-bottom">
-    <button class="btn-export" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    <button class="btn-export" id="btn-exportar" onclick="exportarCSV()">⬇ Exportar CSV</button>
     <button class="btn-export" style="margin-top:6px" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
   </div>
 </nav>
@@ -386,8 +430,9 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
     <div class="sbar-wrap"><span class="sbar-icon">🔍</span><input type="text" id="al-search" placeholder="Buscar por nombre o N° socio..." oninput="renderAlertas()"></div>
     <select class="fsel" id="al-tipo" onchange="renderAlertas()">
       <option value="">Todos</option>
-      <option value="vencido">Vencidos</option>
-      <option value="proximo">Próximos (7 días)</option>
+      <option value="vencido">Membresía Vencida</option>
+      <option value="proximo">Membresía próxima (7 días)</option>
+      <option value="seguro">Seguro vencido/pendiente</option>
     </select>
     <select class="fsel" id="al-academia" onchange="renderAlertas()">
       <option value="">Todas las academias</option>
@@ -425,7 +470,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>N° Socio</th><th>Nombre</th><th>Academia</th><th>Categoría</th><th>Tipo Sangre</th><th>Vencimiento</th><th>Estatus</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>N° Socio</th><th>Nombre</th><th>Academia</th><th>Categoría</th><th>Tipo Sangre</th><th>Vencimiento</th><th>Seguro</th><th>Estatus</th><th>Acciones</th></tr></thead>
       <tbody id="tabla-socios"></tbody>
     </table>
   </div>
@@ -473,6 +518,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
         <div class="fg"><label>Celular Contacto</label><input type="text" id="f-celular" placeholder="10 dígitos"></div>
         <div class="fg"><label>Parentesco</label><input type="text" id="f-parentesco" placeholder="Ej. Padre, Madre, Tutor"></div>
         <div class="fg"><label>Fecha Vencimiento Membresía</label><input type="date" id="f-vencimiento"></div>
+        <div class="fg"><label>Vigencia Seguro (hasta)</label><input type="date" id="f-seguro-vigencia"></div>
+        <div class="fg"><label>Monto del Seguro ($)</label><input type="number" id="f-seguro-monto" placeholder="0.00" min="0"></div>
       </div>
       <hr class="dv">
       <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -527,6 +574,72 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
   <div class="tbl-wrap">
     <div id="log-container"></div>
+  </div>
+</div>
+
+
+<!-- ══ VIEW: REPORTES ══ -->
+<div class="view" id="view-reportes">
+  <div class="page-hdr">
+    <div><h1>Cortes y Reportes</h1><p>Resumen financiero por período</p></div>
+    <button class="btn btn-gold" onclick="imprimirCorte()">🖨 Imprimir Corte</button>
+  </div>
+
+  <div class="periodo-tabs">
+    <button class="ptab active" onclick="setPeriodo('hoy')"   id="pt-hoy">Hoy</button>
+    <button class="ptab"        onclick="setPeriodo('semana')" id="pt-semana">Esta Semana</button>
+    <button class="ptab"        onclick="setPeriodo('mes')"    id="pt-mes">Este Mes</button>
+    <button class="ptab"        onclick="setPeriodo('custom')" id="pt-custom">Personalizado</button>
+  </div>
+
+  <div id="custom-rango" style="display:none;margin-bottom:18px">
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="fg"><label>Desde</label><input type="date" id="rango-desde" oninput="renderReportes()"></div>
+      <div class="fg"><label>Hasta</label><input type="date" id="rango-hasta" oninput="renderReportes()"></div>
+    </div>
+  </div>
+
+  <div class="rep-cards" id="rep-cards"></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+    <div>
+      <div class="corte-box">
+        <div class="corte-box-title">💰 Desglose por Concepto</div>
+        <div id="rep-desglose"></div>
+      </div>
+      <div class="corte-box">
+        <div class="corte-box-title">🏅 Por Academia</div>
+        <div id="rep-academias"></div>
+      </div>
+    </div>
+    <div>
+      <div class="corte-box">
+        <div class="corte-box-title">📋 Pagos del Período</div>
+        <div id="rep-lista" style="max-height:420px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW: PENDIENTES ══ -->
+<div class="view" id="view-pendientes">
+  <div class="page-hdr">
+    <div><h1>Pagos Pendientes</h1><p id="pend-lbl">Socios que no han pagado en el mes actual</p></div>
+    <button class="btn btn-ghost" onclick="renderPendientes()">↺ Actualizar</button>
+  </div>
+  <div class="sbar">
+    <div class="sbar-wrap"><span class="sbar-icon">🔍</span>
+      <input type="text" id="pend-search" placeholder="Buscar por nombre o número..." oninput="renderPendientes()">
+    </div>
+    <select class="fsel" id="pend-mes" onchange="renderPendientes()">
+      <option value="">Mes actual</option>
+    </select>
+    <select class="fsel" id="pend-academia" onchange="renderPendientes()">
+      <option value="">Todas las academias</option>
+    </select>
+  </div>
+  <div class="tbl-wrap">
+    <div id="pend-container"></div>
   </div>
 </div>
 
@@ -601,6 +714,27 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
 </div>
 
+
+<!-- ══ MODAL: SEGURO ══ -->
+<div class="mo" id="mo-seguro" style="display:none" onclick="if(event.target===this)cerrarMo('mo-seguro')">
+  <div class="md" style="max-width:460px">
+    <div class="md-hdr"><div class="md-title">🛡 Actualizar Seguro</div><button class="md-close" onclick="cerrarMo('mo-seguro')">✕</button></div>
+    <div class="md-body">
+      <div id="seguro-al"></div>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:18px">Socio: <strong id="seguro-nombre-lbl" style="color:var(--gold2)"></strong></p>
+      <div class="fgrid">
+        <div class="fg"><label>Vigente hasta *</label><input type="date" id="seg-vigencia"></div>
+        <div class="fg"><label>Monto pagado ($)</label><input type="number" id="seg-monto" placeholder="0.00" min="0"></div>
+        <div class="fg full"><label>Notas (opcional)</label><input type="text" id="seg-notas" placeholder="Ej. Seguro anual, renovación..."></div>
+      </div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-seguro')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarSeguro()">🛡 Guardar Seguro</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ RECIBO PRINT ══ -->
 <div id="recibo-print"></div>
 
@@ -654,6 +788,20 @@ let lockerEdit = null;
 const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
 function fmt$(v){ return '$'+(parseFloat(v)||0).toLocaleString('es-MX',{minimumFractionDigits:0}); }
+
+function getSeguroEstatus(s) {
+  if (!s.SEGURO_VIGENCIA) return 'pendiente';
+  const dias = Math.round((new Date(s.SEGURO_VIGENCIA) - new Date()) / 86400000);
+  if (dias < 0) return 'vencido';
+  return 'pagado';
+}
+
+function seguroBadge(s) {
+  const est = getSeguroEstatus(s);
+  if (est === 'pagado')   return `<span class="badge b-pagado">✅ Seguro Pagado</span>`;
+  if (est === 'vencido')  return `<span class="badge b-vencido-seg">❌ Seguro Vencido</span>`;
+  return `<span class="badge b-pendiente">⏳ Seguro Pendiente</span>`;
+}
 function iniciales(n){ if(!n)return'?'; const p=n.trim().split(' '); return (p[0]?.[0]||'')+(p[p.length-1]?.[0]||''); }
 function cerrarMo(id){ document.getElementById(id).style.display='none'; }
 function hoy(){ return new Date().toISOString().slice(0,10); }
@@ -680,6 +828,10 @@ function showView(v) {
   if(v==='lockers') renderLockers();
   if(v==='alertas') renderAlertas();
   if(v==='inicio') renderInicio();
+  if(v==='reportes') renderReportes();
+  if(v==='pendientes') renderPendientes();
+  if(v==='reportes') { renderReportes(); }
+  if(v==='pendientes') { renderPendientes(); }
 }
 
 // ═══════════════════════════ STATS ═══════════════════════════
@@ -687,7 +839,8 @@ function calcAlertas() {
   return socios.filter(s => {
     if(s.ACTIVO===false) return false;
     const d = diasHastaVenc(s);
-    return d !== null && d <= 7;
+    const segEst = getSeguroEstatus(s);
+    return (d !== null && d <= 7) || segEst === 'vencido' || segEst === 'pendiente';
   });
 }
 
@@ -702,6 +855,17 @@ function actualizarStats() {
   ['hdr-alertas','s-alertas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=alrts; });
   ['hdr-pagos','s-pagos'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=pagos.length; });
   ['badge-alertas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=alrts; });
+  const _mesAct=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+  const _conPago=new Set(pagos.filter(p=>p.MES===_mesAct).map(p=>p.NS));
+  const _nPend=socios.filter(s=>s.ACTIVO!==false&&!_conPago.has(s.NS)).length;
+  const _bpend=document.getElementById('badge-pendientes'); if(_bpend)_bpend.textContent=_nPend;
+  // Update pendientes badge
+  const ahora=new Date();
+  const mesAct=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][ahora.getMonth()];
+  const conPago=new Set(pagos.filter(p=>p.MES===mesAct).map(p=>p.NS));
+  const nPend=socios.filter(s=>s.ACTIVO!==false&&!conPago.has(s.NS)).length;
+  const bpend=document.getElementById('badge-pendientes');
+  if(bpend) bpend.textContent=nPend;
 
   // Populate filters
   const acads = getAcademias();
@@ -751,10 +915,14 @@ function renderAlertas() {
   const lista = socios.filter(s => {
     if(s.ACTIVO===false) return false;
     const d=diasHastaVenc(s);
-    if(d===null) return false;
-    if(tipo==='vencido' && d>0) return false;
-    if(tipo==='proximo' && (d<=0||d>7)) return false;
-    if(!tipo && d>7) return false;
+    const segEst=getSeguroEstatus(s);
+    // include if membresia alert OR seguro alert
+    const membAlert = d!==null && d<=7;
+    const segAlert  = segEst==='vencido' || segEst==='pendiente';
+    if(!membAlert && !segAlert) return false;
+    if(tipo==='vencido' && !(d!==null&&d<=0) && segEst!=='vencido') return false;
+    if(tipo==='proximo' && !(d!==null&&d>0&&d<=7)) return false;
+    if(tipo==='seguro' && segEst==='pagado') return false;
     if(q && !s.NOMBRE.toLowerCase().includes(q) && !s.NS.includes(q)) return false;
     if(ac && s.ACADEMIA.trim()!==ac) return false;
     return true;
@@ -767,17 +935,22 @@ function renderAlertas() {
   }
   const items = lista.map(s=>{
     const d=diasHastaVenc(s);
-    const chip = d<=0
-      ? `<span class="alert-chip vencido">VENCIDO ${Math.abs(d)}d</span>`
-      : `<span class="alert-chip proximo">Vence en ${d}d</span>`;
+    const chip = d===null ? '' : d<=0
+      ? `<span class="alert-chip vencido">MEMBRESÍA VENCIDA ${Math.abs(d)}d</span>`
+      : `<span class="alert-chip proximo">Membresía vence en ${d}d</span>`;
+    const segEst2 = getSeguroEstatus(s);
+    const segChip = segEst2==='vencido'
+      ? `<span class="alert-chip vencido">SEGURO VENCIDO</span>`
+      : segEst2==='pendiente' ? `<span class="alert-chip proximo">SEGURO PENDIENTE</span>` : '';
     return `<div class="alert-item" onclick="verSocio('${s.NS}')" style="cursor:pointer">
       <div>
         <div class="an">#${s.NS} — ${s.NOMBRE}</div>
-        <div class="ad">${s.ACADEMIA||'—'} · ${s.CATEGORIA||'—'} · Vence: ${s.VENCIMIENTO||'—'}</div>
+        <div class="ad">${s.ACADEMIA||'—'} · ${s.CATEGORIA||'—'} · Vence: ${s.VENCIMIENTO||'—'} · Seguro: ${s.SEGURO_VIGENCIA||'Sin registrar'}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${chip}
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        ${chip}${segChip}
         <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();abrirModalPago('${s.NS}')">💳 Pago</button>
+        <button class="btn btn-blue btn-sm" onclick="event.stopPropagation();abrirModalSeguro('${s.NS}')">🛡 Seguro</button>
       </div>
     </div>`;
   }).join('');
@@ -847,6 +1020,7 @@ function renderSocios() {
         <td style="color:var(--text3)">${s.CATEGORIA||'—'}</td>
         <td>${s.TIPO_SANGRE||'—'}</td>
         <td>${vChip}</td>
+        <td>${seguroBadge(s)}</td>
         <td><span class="badge ${s.ACTIVO===false?'b-baja':'b-active'}">${s.ACTIVO===false?'BAJA':'ACTIVO'}</span></td>
         <td onclick="event.stopPropagation()"><div style="display:flex;gap:5px">
           <button class="btn btn-ghost btn-sm" onclick="verSocio('${s.NS}')">👁</button>
@@ -893,7 +1067,7 @@ function renderPagos() {
       <td><span class="badge b-gold">${p.ACADEMIA||'—'}</span></td>
       <td>${p.REGISTRADO_POR?`<div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:var(--gold);color:#000;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;flex-shrink:0">${(p.REGISTRADO_POR||'?')[0]}</div><span style="color:var(--text2);font-size:12px">${p.REGISTRADO_POR}</span></div>`:'<span style="color:var(--text3)">—</span>'}</td>
       <td style="color:var(--text3);font-size:12px;white-space:nowrap">${p.FECHA_REGISTRO?p.FECHA_REGISTRO+' '+p.HORA_REGISTRO:'—'}</td>
-      <td><button class="btn btn-red btn-sm" onclick="eliminarPago(${pagos.indexOf(p)})">🗑</button></td>
+      <td>${puedeHacer('eliminarPago')?`<button class="btn btn-red btn-sm" onclick="eliminarPago(${pagos.indexOf(p)})">🗑</button>`:'<span style="color:var(--text3)">—</span>'}</td>
     </tr>`).join('');
   }
   renderPag('pag-pagos',pgPagos,max,p=>{pgPagos=p;renderPagos();});
@@ -938,6 +1112,20 @@ function verSocio(ns) {
       <div class="iitem"><label>Vencimiento Membresía</label><div class="iv">${vChip}</div></div>
       <div class="iitem"><label>Total Pagado</label><div class="iv" style="color:var(--green2);font-weight:700">${fmt$(total)}</div></div>
     </div>
+    <div class="seguro-card">
+      <div class="seguro-card-hdr">
+        <span class="seguro-card-title">🛡 Seguro Deportivo</span>
+        ${seguroBadge(s)}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="iitem"><label>Estatus</label><div class="iv">${getSeguroEstatus(s)==='pagado'?'Al corriente':getSeguroEstatus(s)==='vencido'?'<span style="color:var(--red2)">Vencido</span>':'<span style="color:var(--orange)">Sin registrar</span>'}</div></div>
+        <div class="iitem"><label>Vigente hasta</label><div class="iv">${s.SEGURO_VIGENCIA||'—'}</div></div>
+        <div class="iitem"><label>Monto pagado</label><div class="iv" style="color:var(--green2)">${s.SEGURO_MONTO?fmt$(s.SEGURO_MONTO):'—'}</div></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-gold btn-sm" onclick="abrirModalSeguro('${s.NS}')">✏️ Actualizar Seguro</button>
+      </div>
+    </div>
     <div class="stitle">Historial de Pagos (${ps.length})</div>
     ${ps.length?`<div style="overflow-x:auto"><table class="pmini">
       <thead><tr><th>Mes</th><th>Monto</th><th>Inscripción</th><th>Seguro</th><th>Descuento</th><th>Ref.</th><th>Fecha</th><th>Registrado por</th><th>Hora</th></tr></thead>
@@ -981,6 +1169,8 @@ function darDeAlta() {
     CELULAR:document.getElementById('f-celular').value||'',
     PARENTESCO:document.getElementById('f-parentesco').value.toUpperCase()||'',
     VENCIMIENTO:document.getElementById('f-vencimiento').value||'',
+    SEGURO_VIGENCIA:document.getElementById('f-seguro-vigencia').value||'',
+    SEGURO_MONTO:document.getElementById('f-seguro-monto').value||'',
     ACTIVO:true
   };
   if(!puedeHacer('alta')){ div.innerHTML='<div class="al al-err">⛔ No tienes permiso para dar de alta socios.</div>'; return; }
@@ -1079,7 +1269,7 @@ function guardarPago(imprimir=true) {
   if(imprimir) setTimeout(()=>imprimirRecibo(nuevo),300);
 }
 
-function eliminarPago(idx){if(!confirm('¿Eliminar este pago?'))return;pagos.splice(idx,1);actualizarStats();renderPagos();}
+function eliminarPago(idx){if(!puedeHacer('eliminarPago')){alert('⛔ No tienes permiso para eliminar pagos.');return;}if(!confirm('¿Eliminar este pago?'))return;pagos.splice(idx,1);actualizarStats();renderPagos();}
 
 // ═══════════════════════════ IMPRIMIR FICHA ═══════════════════════════
 function imprimirFicha(ns) {
@@ -1214,6 +1404,7 @@ function liberarLocker(nl,genero){
 
 // ═══════════════════════════ EXPORT ═══════════════════════════
 function exportarCSV(){
+  if(!puedeHacer('exportar')){ alert('⛔ Solo el Administrador puede exportar la base de datos.'); return; }
   const hdrs=['NS','NOMBRE','FECHA_NAC','CONTACTO_EMERGENCIA','CELULAR','PARENTESCO','TIPO_SANGRE','ACADEMIA','CATEGORIA','VENCIMIENTO','ACTIVO'];
   const rows=socios.map(s=>hdrs.map(h=>`"${(s[h]||'').toString().replace(/"/g,'""')}"`).join(','));
   const csv=[hdrs.join(','),...rows].join('\n');
@@ -1248,16 +1439,16 @@ const USUARIOS = [
 
 // Permisos por rol
 const PERMISOS = {
-  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','log'],
-  recepcionista: ['inicio','alertas','buscar','socios','pagos','lockers'],
-  supervisor:    ['inicio','alertas','buscar','socios','pagos','log']
+  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','reportes','pendientes','log'],
+  recepcionista: ['inicio','alertas','buscar','socios','pagos','alta','lockers'],
+  supervisor:    ['inicio','alertas','buscar','socios','pagos','reportes','pendientes','log']
 };
 
 // Acciones permitidas por rol
 const ACCIONES = {
-  admin:         ['pago','alta','baja','reactivar','locker','exportar'],
-  recepcionista: ['pago','locker'],
-  supervisor:    []
+  admin:         ['pago','alta','baja','reactivar','locker','exportar','verLog','eliminarPago'],
+  recepcionista: ['pago','alta','baja','reactivar','locker'],
+  supervisor:    ['verLog']
 };
 
 let sesionActual = null;
@@ -1295,11 +1486,20 @@ function cerrarSesion() {
 function aplicarPermisos() {
   if (!sesionActual) return;
   const vistas = PERMISOS[sesionActual.rol] || [];
-  // Ocultar nav items que no tiene permiso
-  ['inicio','alertas','buscar','socios','pagos','alta','lockers','log'].forEach(v => {
+
+  // Mostrar/ocultar nav items
+  ['inicio','alertas','buscar','socios','pagos','alta','lockers','reportes','pendientes','log'].forEach(v => {
     const el = document.getElementById('nav-'+v);
     if (el) el.style.display = vistas.includes(v) ? '' : 'none';
   });
+
+  // Mostrar/ocultar botón de exportar según rol
+  const btnExp = document.getElementById('btn-exportar');
+  if (btnExp) btnExp.style.display = puedeHacer('exportar') ? '' : 'none';
+
+  // Mostrar/ocultar botón eliminar pago según rol
+  // (se maneja dinámicamente en renderPagos)
+
   // Ir a primera vista permitida
   showView(vistas[0] || 'inicio');
 }
@@ -1321,12 +1521,20 @@ function checkPermiso(accion, callback) {
 function renderUserChip() {
   if (!sesionActual) return;
   const roleClass = { admin:'role-admin', recepcionista:'role-recep', supervisor:'role-super' }[sesionActual.rol];
-  const roleLabel = { admin:'Admin', recepcionista:'Recep.', supervisor:'Supervisor' }[sesionActual.rol];
+  const roleLabel = { admin:'Administrador', recepcionista:'Recepcionista', supervisor:'Supervisor' }[sesionActual.rol];
+  const permisosList = {
+    admin: 'Acceso total al sistema',
+    recepcionista: 'Altas · Bajas · Pagos · Lockers · Alertas',
+    supervisor: 'Solo lectura · Log de actividad'
+  }[sesionActual.rol];
   document.getElementById('user-chip-wrap').innerHTML = `
-    <div class="user-chip" onclick="cerrarSesion()" title="Cerrar sesión">
+    <div class="user-chip" onclick="cerrarSesion()" title="Permisos: ${permisosList}&#10;Clic para cerrar sesión">
       <div class="uc-av">${sesionActual.nombre[0]}</div>
-      <span>${sesionActual.nombre}</span>
-      <span class="role-badge ${roleClass}">${roleLabel}</span>
+      <div style="line-height:1.2">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${sesionActual.nombre}</div>
+        <div style="font-size:10px;color:var(--text3)">${permisosList}</div>
+      </div>
+      <span class="role-badge ${roleClass}" style="margin-left:4px">${roleLabel}</span>
     </div>`;
 }
 
@@ -1386,6 +1594,178 @@ function renderLog() {
         </div>
       </div>
     </div>`).join('');
+}
+
+// ═══════════════════════════ REPORTES Y CORTES ═══════════════════════════
+let periodoActual = 'hoy';
+
+function setPeriodo(p) {
+  periodoActual = p;
+  ['hoy','semana','mes','custom'].forEach(x => {
+    document.getElementById('pt-'+x)?.classList.toggle('active', x===p);
+  });
+  document.getElementById('custom-rango').style.display = p==='custom' ? '' : 'none';
+  renderReportes();
+}
+
+function getListaPeriodo() {
+  const ahora = new Date();
+  let desde, hasta;
+  if (periodoActual === 'hoy') {
+    desde = hasta = ahora.toISOString().slice(0,10);
+  } else if (periodoActual === 'semana') {
+    const d = new Date(ahora); d.setDate(d.getDate() - d.getDay());
+    desde = d.toISOString().slice(0,10); hasta = ahora.toISOString().slice(0,10);
+  } else if (periodoActual === 'mes') {
+    desde = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-01`;
+    hasta = ahora.toISOString().slice(0,10);
+  } else {
+    desde = document.getElementById('rango-desde')?.value || '';
+    hasta = document.getElementById('rango-hasta')?.value || ahora.toISOString().slice(0,10);
+  }
+  return pagos.filter(p => {
+    const f = (p.FECHA_REGISTRO || p.FECHA_PAGO || '').slice(0,10);
+    if (!f) return false;
+    return f >= desde && f <= hasta;
+  });
+}
+
+function getPeriodoLabel() {
+  if (periodoActual==='hoy') return 'Hoy ' + new Date().toLocaleDateString('es-MX');
+  if (periodoActual==='semana') return 'Esta semana';
+  if (periodoActual==='mes') return new Date().toLocaleDateString('es-MX',{month:'long',year:'numeric'});
+  return 'Período personalizado';
+}
+
+function renderReportes() {
+  const lista = getListaPeriodo();
+  const totalDinero  = lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0),0);
+  const totalMens    = lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0),0);
+  const totalInsc    = lista.reduce((a,p)=>a+(parseFloat(p.INSCRIPCION)||0),0);
+  const totalSeg     = lista.reduce((a,p)=>a+(parseFloat(p.SEGURO)||0),0);
+  const conDescuento = lista.filter(p=>p.DESCUENTO&&p.DESCUENTO!=='NO APLICA').length;
+
+  const cards = document.getElementById('rep-cards');
+  if (!cards) return;
+  cards.innerHTML = `
+    <div class="rep-card gold"><div class="rv">${lista.length}</div><div class="rl">Pagos Registrados</div><div class="rsub">${getPeriodoLabel()}</div></div>
+    <div class="rep-card green"><div class="rv">${fmt$(totalDinero)}</div><div class="rl">Total Ingresado</div><div class="rsub">Suma de todos los conceptos</div></div>
+    <div class="rep-card blue"><div class="rv">${fmt$(totalMens)}</div><div class="rl">Mensualidades</div><div class="rsub">${lista.filter(p=>parseFloat(p.MONTO)>0).length} pagos</div></div>
+    <div class="rep-card orange"><div class="rv">${conDescuento}</div><div class="rl">Con Descuento</div><div class="rsub">de ${lista.length} pagos totales</div></div>`;
+
+  document.getElementById('rep-desglose').innerHTML = `
+    ${[['💳 Mensualidades',fmt$(totalMens),lista.filter(p=>parseFloat(p.MONTO)>0).length+' pagos'],
+       ['📋 Inscripciones',fmt$(totalInsc),lista.filter(p=>parseFloat(p.INSCRIPCION)>0).length+' pagos'],
+       ['🛡 Seguros',fmt$(totalSeg),lista.filter(p=>parseFloat(p.SEGURO)>0).length+' pagos'],
+       ['🎟 Con Descuento',conDescuento+' socios','—']
+      ].map(([l,v,s])=>`<div class="corte-row"><div class="cr-lbl">${l}<br><span style="font-size:11px;color:var(--text3)">${s}</span></div><div class="cr-val">${v}</div></div>`).join('')}
+    <div class="corte-total"><span class="ct-lbl">TOTAL DEL PERÍODO</span><span class="ct-val">${fmt$(totalDinero)}</span></div>`;
+
+  const byAcad={};
+  lista.forEach(p=>{const a=p.ACADEMIA?.trim()||'Sin academia';if(!byAcad[a]){byAcad[a]={count:0,total:0};}byAcad[a].count++;byAcad[a].total+=(parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0);});
+  document.getElementById('rep-academias').innerHTML = Object.entries(byAcad).sort((a,b)=>b[1].total-a[1].total).length
+    ? Object.entries(byAcad).sort((a,b)=>b[1].total-a[1].total).map(([a,d])=>`<div class="corte-row"><div class="cr-lbl">${a}<br><span style="font-size:11px;color:var(--text3)">${d.count} pago${d.count!==1?'s':''}</span></div><div class="cr-val" style="color:var(--green2)">${fmt$(d.total)}</div></div>`).join('')
+    : '<p style="color:var(--text3);font-size:13px;padding:8px 0">Sin pagos en este período</p>';
+
+  document.getElementById('rep-lista').innerHTML = lista.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="padding:8px;border-bottom:1px solid var(--border);color:var(--text3);text-align:left">Socio</th>
+          <th style="padding:8px;border-bottom:1px solid var(--border);color:var(--text3);text-align:left">Mes</th>
+          <th style="padding:8px;border-bottom:1px solid var(--border);color:var(--text3);text-align:left">Total</th>
+          <th style="padding:8px;border-bottom:1px solid var(--border);color:var(--text3);text-align:left">Registró</th>
+        </tr></thead>
+        <tbody>${lista.map(p=>`<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px"><div style="font-weight:600;color:var(--text)">${p.NOMBRE}</div><div style="font-size:10px;color:var(--text3)">#${p.NS}</div></td>
+          <td style="padding:8px;color:var(--text2)">${p.MES||'—'}</td>
+          <td style="padding:8px;color:var(--green2);font-weight:600">${fmt$((parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0))}</td>
+          <td style="padding:8px;color:var(--text3);font-size:11px">${p.REGISTRADO_POR||'—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>`
+    : '<div class="empty"><div class="ei">💳</div><p>Sin pagos en este período</p></div>';
+}
+
+function imprimirCorte() {
+  const lista = getListaPeriodo();
+  const totalDinero=lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0),0);
+  const totalMens=lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0),0);
+  const totalInsc=lista.reduce((a,p)=>a+(parseFloat(p.INSCRIPCION)||0),0);
+  const totalSeg=lista.reduce((a,p)=>a+(parseFloat(p.SEGURO)||0),0);
+  const byAcad={};
+  lista.forEach(p=>{const a=p.ACADEMIA?.trim()||'Sin academia';if(!byAcad[a]){byAcad[a]={count:0,total:0};}byAcad[a].count++;byAcad[a].total+=(parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0);});
+  const div=document.getElementById('recibo-print');
+  div.innerHTML=`<div style="font-family:Arial,sans-serif;padding:32px;color:#000;background:#fff;max-width:720px;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #000;padding-bottom:14px;margin-bottom:20px">
+      <div><h1 style="font-size:20px;margin:0">ACADEMIAS DEPORTIVAS CDU</h1><p style="margin:4px 0 0;font-size:12px;color:#555">Universidad de Guadalajara</p></div>
+      <div style="text-align:right"><p style="font-size:12px;color:#555;margin:0">CORTE DE CAJA</p><p style="font-size:16px;font-weight:bold;margin:4px 0 0">${getPeriodoLabel()}</p><p style="font-size:11px;color:#888;margin:4px 0 0">Generado: ${new Date().toLocaleString('es-MX')}</p>${sesionActual?`<p style="font-size:11px;color:#888;margin:2px 0 0">Por: ${sesionActual.nombre}</p>`:''}</div>
+    </div>
+    <h3 style="margin-bottom:10px;font-size:14px">RESUMEN GENERAL</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px">
+      ${[['Total de pagos',lista.length+' pagos'],['Mensualidades',fmt$(totalMens)],['Inscripciones',fmt$(totalInsc)],['Seguros',fmt$(totalSeg)]].map(([k,v])=>`<tr><td style="padding:7px 10px;border:1px solid #ddd;background:#f8f8f8;width:55%">${k}</td><td style="padding:7px 10px;border:1px solid #ddd;font-weight:600">${v}</td></tr>`).join('')}
+      <tr style="background:#000"><td style="padding:10px;color:#fff;font-weight:bold">TOTAL INGRESADO</td><td style="padding:10px;color:#fff;font-weight:bold;font-size:16px">${fmt$(totalDinero)}</td></tr>
+    </table>
+    <h3 style="margin-bottom:10px;font-size:14px">POR ACADEMIA</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px">
+      <thead><tr>${['Academia','Pagos','Total'].map(h=>`<th style="padding:7px;border:1px solid #ddd;background:#333;color:#fff;text-align:left">${h}</th>`).join('')}</tr></thead>
+      <tbody>${Object.entries(byAcad).sort((a,b)=>b[1].total-a[1].total).map(([a,d])=>`<tr><td style="padding:7px;border:1px solid #ddd">${a}</td><td style="padding:7px;border:1px solid #ddd">${d.count}</td><td style="padding:7px;border:1px solid #ddd;font-weight:600">${fmt$(d.total)}</td></tr>`).join('')}</tbody>
+    </table>
+    <h3 style="margin-bottom:10px;font-size:14px">DETALLE DE PAGOS</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr>${['N°','Nombre','Academia','Mes','Mensualidad','Inscripción','Seguro','Descuento','Registró','Hora'].map(h=>`<th style="padding:5px 6px;border:1px solid #ddd;background:#333;color:#fff;text-align:left">${h}</th>`).join('')}</tr></thead>
+      <tbody>${lista.map(p=>`<tr><td style="padding:4px 6px;border:1px solid #eee">#${p.NS}</td><td style="padding:4px 6px;border:1px solid #eee">${p.NOMBRE}</td><td style="padding:4px 6px;border:1px solid #eee">${p.ACADEMIA||'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${p.MES||'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${parseFloat(p.MONTO)>0?fmt$(p.MONTO):'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${parseFloat(p.INSCRIPCION)>0?fmt$(p.INSCRIPCION):'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${parseFloat(p.SEGURO)>0?fmt$(p.SEGURO):'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${p.DESCUENTO&&p.DESCUENTO!=='NO APLICA'?p.DESCUENTO:'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${p.REGISTRADO_POR||'—'}</td><td style="padding:4px 6px;border:1px solid #eee">${p.HORA_REGISTRO||'—'}</td></tr>`).join('')}</tbody>
+    </table>
+    <p style="margin-top:20px;font-size:10px;color:#aaa;text-align:center">Academias Deportivas CDU · ${new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})}</p>
+  </div>`;
+  div.style.display='block'; window.print(); setTimeout(()=>div.style.display='none',1000);
+  registrarLog('pago','Corte impreso: '+getPeriodoLabel(),null);
+}
+
+// ═══════════════════════════ PAGOS PENDIENTES ═══════════════════════════
+function renderPendientes() {
+  const ahora=new Date();
+  const mesSelEl=document.getElementById('pend-mes');
+  const mesActual=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][ahora.getMonth()];
+  const mesBuscar=mesSelEl?.value||mesActual;
+  const q=(document.getElementById('pend-search')?.value||'').toLowerCase();
+  const ac=document.getElementById('pend-academia')?.value.trim()||'';
+  const sociosConPago=new Set(pagos.filter(p=>p.MES===mesBuscar).map(p=>p.NS));
+  const pendientes=socios.filter(s=>{
+    if(s.ACTIVO===false) return false;
+    if(sociosConPago.has(s.NS)) return false;
+    if(q&&!s.NOMBRE.toLowerCase().includes(q)&&!s.NS.includes(q)) return false;
+    if(ac&&s.ACADEMIA.trim()!==ac) return false;
+    return true;
+  });
+  const badge=document.getElementById('badge-pendientes');
+  if(badge) badge.textContent=pendientes.length;
+  const lbl=document.getElementById('pend-lbl');
+  if(lbl) lbl.textContent=`${pendientes.length} socios sin pago en ${mesBuscar}`;
+  const meses=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  if(mesSelEl){const cur=mesSelEl.value;mesSelEl.innerHTML='<option value="">Mes actual ('+mesActual+')</option>'+meses.map(m=>`<option value="${m}">${m}</option>`).join('');mesSelEl.value=cur;}
+  const pendAcadEl=document.getElementById('pend-academia');
+  if(pendAcadEl){const acads=getAcademias();const cur=pendAcadEl.value;pendAcadEl.innerHTML='<option value="">Todas las academias</option>'+acads.map(a=>`<option value="${a}">${a}</option>`).join('');pendAcadEl.value=cur;}
+  const cont=document.getElementById('pend-container');
+  if(!cont) return;
+  if(!pendientes.length){cont.innerHTML=`<div class="empty"><div class="ei">✅</div><p>Todos los socios activos han pagado en <strong>${mesBuscar}</strong></p></div>`;return;}
+  cont.innerHTML=`
+    <div style="padding:12px 16px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:12px;color:var(--text3)">
+      ${pendientes.length} socios pendientes · Mes: <strong style="color:var(--gold2)">${mesBuscar}</strong>
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr>${['N° Socio','Nombre','Academia','Categoría','Último Pago','Acción'].map(h=>`<th style="padding:11px 14px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);background:var(--bg3)">${h}</th>`).join('')}</tr></thead>
+      <tbody>${pendientes.map(s=>{
+        const ultP=pagos.filter(p=>p.NS===s.NS).slice(-1)[0];
+        return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="verSocio('${s.NS}')">
+          <td style="padding:11px 14px"><strong style="color:var(--gold2)">#${s.NS}</strong></td>
+          <td style="padding:11px 14px;color:var(--text);font-weight:500">${s.NOMBRE}</td>
+          <td style="padding:11px 14px"><span class="badge b-gold">${s.ACADEMIA||'—'}</span></td>
+          <td style="padding:11px 14px;color:var(--text3)">${s.CATEGORIA||'—'}</td>
+          <td style="padding:11px 14px;color:var(--text3);font-size:12px">${ultP?`${ultP.MES} · ${ultP.FECHA_PAGO||'—'}`:'Sin pagos'}</td>
+          <td style="padding:11px 14px" onclick="event.stopPropagation()">
+            <button class="btn btn-gold btn-sm" onclick="abrirModalPago('${s.NS}')">💳 Registrar Pago</button>
+          </td>
+        </tr>`;}).join('')}</tbody>
+    </table>`;
 }
 
 // Show login on load
