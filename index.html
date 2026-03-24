@@ -232,6 +232,10 @@ input[readonly]{opacity:.55;cursor:default}
 .pend-item:hover{background:var(--bg3)}
 .pend-item:last-child{border-bottom:none}
 
+/* ── CLICKABLE NAME ── */
+.name-link{cursor:pointer;text-decoration:underline;text-decoration-color:var(--border);transition:color .15s}
+.name-link:hover{color:var(--gold2)!important;text-decoration-color:var(--gold2)}
+
 /* ── SEGURO ── */
 .b-pagado{background:rgba(46,204,113,.12);color:var(--green2)}
 .b-pendiente{background:rgba(230,126,34,.12);color:var(--orange)}
@@ -725,7 +729,8 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
       <div class="fgrid">
         <div class="fg"><label>Vigente hasta *</label><input type="date" id="seg-vigencia"></div>
         <div class="fg"><label>Monto pagado ($)</label><input type="number" id="seg-monto" placeholder="0.00" min="0"></div>
-        <div class="fg full"><label>Notas (opcional)</label><input type="text" id="seg-notas" placeholder="Ej. Seguro anual, renovación..."></div>
+        <div class="fg"><label>N° Referencia del Seguro</label><input type="text" id="seg-ref" placeholder="Folio o número de póliza"></div>
+        <div class="fg"><label>Notas (opcional)</label><input type="text" id="seg-notas" placeholder="Ej. Seguro anual, renovación..."></div>
       </div>
     </div>
     <div class="md-footer">
@@ -897,7 +902,7 @@ function renderInicio() {
   const ult=[...pagos].slice(-8).reverse();
   document.getElementById('tbl-ultpagos').innerHTML=ult.map(p=>`
     <tr>
-      <td class="mc" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" onclick="verSocio('${p.NS}')" title="Ver ficha de ${p.NOMBRE}">${p.NOMBRE}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;color:var(--text);font-weight:500;text-decoration:underline;text-decoration-color:var(--border)" onclick="verSocio('${p.NS}')" title="Ver ficha">${p.NOMBRE}</td>
       <td style="color:var(--green2);font-weight:600">${fmt$(p.MONTO)}</td>
       <td style="color:var(--text3)">${p.MES||'—'}</td>
       <td>${p.REGISTRADO_POR?`<div style="display:flex;align-items:center;gap:5px" title="${p.FECHA_REGISTRO||''} ${p.HORA_REGISTRO||''}"><div style="width:20px;height:20px;border-radius:50%;background:var(--gold);color:#000;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${(p.REGISTRADO_POR||'?')[0]}</div><span style="font-size:11px;color:var(--text2)">${p.REGISTRADO_POR}</span></div>`:'<span style="color:var(--text3);font-size:11px">—</span>'}</td>
@@ -975,7 +980,7 @@ function buscarSocio() {
       const vChip = d===null?'—':d<=0?`<span class="badge b-orange">Vencido</span>`:d<=7?`<span class="badge b-orange">${d}d</span>`:`<span style="color:var(--text3)">${s.VENCIMIENTO}</span>`;
       return `<tr onclick="verSocio('${s.NS}')">
         <td><strong style="color:var(--gold2)">#${s.NS}</strong></td>
-        <td class="mc">${s.NOMBRE}</td>
+        <td class="mc name-link" onclick="event.stopPropagation();verSocio('${s.NS}')">${s.NOMBRE}</td>
         <td><span class="badge b-gold">${s.ACADEMIA||'—'}</span></td>
         <td style="color:var(--text3)">${s.CATEGORIA||'—'}</td>
         <td>${vChip}</td>
@@ -1015,7 +1020,7 @@ function renderSocios() {
       const vChip=d===null?'<span style="color:var(--text3)">—</span>':d<=0?`<span class="badge b-orange">Vencido</span>`:d<=7?`<span class="badge b-orange">${d}d</span>`:`<span style="color:var(--text3);font-size:12px">${s.VENCIMIENTO}</span>`;
       return `<tr onclick="verSocio('${s.NS}')">
         <td><strong style="color:var(--gold2)">#${s.NS}</strong></td>
-        <td class="mc">${s.NOMBRE}</td>
+        <td class="mc name-link" onclick="event.stopPropagation();verSocio('${s.NS}')">${s.NOMBRE}</td>
         <td><span class="badge b-gold">${s.ACADEMIA||'—'}</span></td>
         <td style="color:var(--text3)">${s.CATEGORIA||'—'}</td>
         <td>${s.TIPO_SANGRE||'—'}</td>
@@ -1058,7 +1063,7 @@ function renderPagos() {
   if(!slice.length){tbody.innerHTML=`<tr><td colspan="9"><div class="empty"><div class="ei">💳</div><p>Sin resultados</p></div></td></tr>`;} else {
     tbody.innerHTML=slice.map(p=>`<tr>
       <td><strong style="color:var(--gold2)">#${p.NS}</strong></td>
-      <td class="mc" style="cursor:pointer" onclick="verSocio('${p.NS}')">${p.NOMBRE}</td>
+      <td class="mc name-link" onclick="verSocio('${p.NS}')">${p.NOMBRE}</td>
       <td>${p.MES||'—'}</td>
       <td style="color:var(--green2);font-weight:600">${fmt$(p.MONTO)}</td>
       <td>${p.DESCUENTO&&p.DESCUENTO!=='NO APLICA'?`<span class="badge b-blue">${p.DESCUENTO}</span>`:'<span style="color:var(--text3)">—</span>'}</td>
@@ -1121,9 +1126,10 @@ function verSocio(ns) {
         <div class="iitem"><label>Estatus</label><div class="iv">${getSeguroEstatus(s)==='pagado'?'Al corriente':getSeguroEstatus(s)==='vencido'?'<span style="color:var(--red2)">Vencido</span>':'<span style="color:var(--orange)">Sin registrar</span>'}</div></div>
         <div class="iitem"><label>Vigente hasta</label><div class="iv">${s.SEGURO_VIGENCIA||'—'}</div></div>
         <div class="iitem"><label>Monto pagado</label><div class="iv" style="color:var(--green2)">${s.SEGURO_MONTO?fmt$(s.SEGURO_MONTO):'—'}</div></div>
+        <div class="iitem"><label>N° Referencia</label><div class="iv" style="color:var(--text2)">${s.SEGURO_REFERENCIA||'—'}</div></div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px">
-        <button class="btn btn-gold btn-sm" onclick="abrirModalSeguro('${s.NS}')">✏️ Actualizar Seguro</button>
+        <button class="btn btn-gold btn-sm" onclick="cerrarMo('mo-socio');abrirModalSeguro('${s.NS}')">💳 Registrar Pago de Seguro</button>
       </div>
     </div>
     <div class="stitle">Historial de Pagos (${ps.length})</div>
@@ -1446,9 +1452,9 @@ const PERMISOS = {
 
 // Acciones permitidas por rol
 const ACCIONES = {
-  admin:         ['pago','alta','baja','reactivar','locker','exportar','verLog','eliminarPago'],
-  recepcionista: ['pago','alta','baja','reactivar','locker'],
-  supervisor:    ['verLog']
+  admin:         ['pago','alta','baja','reactivar','locker','exportar','verLog','eliminarPago','seguro'],
+  recepcionista: ['pago','alta','baja','reactivar','locker','seguro'],
+  supervisor:    ['verLog','seguro']
 };
 
 let sesionActual = null;
@@ -1528,7 +1534,7 @@ function renderUserChip() {
     supervisor: 'Solo lectura · Log de actividad'
   }[sesionActual.rol];
   document.getElementById('user-chip-wrap').innerHTML = `
-    <div class="user-chip" onclick="cerrarSesion()" title="Permisos: ${permisosList}&#10;Clic para cerrar sesión">
+    <div class="user-chip" title="Permisos: ${permisosList}" style="cursor:default">
       <div class="uc-av">${sesionActual.nombre[0]}</div>
       <div style="line-height:1.2">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${sesionActual.nombre}</div>
@@ -1586,7 +1592,7 @@ function renderLog() {
     <div class="log-item">
       <div class="log-dot ${l.tipo}"></div>
       <div style="flex:1">
-        <div style="color:var(--text);font-weight:500">${l.descripcion}${l.ns ? ` <span style="color:var(--gold2)">· #${l.ns}</span>` : ''}</div>
+        <div style="color:var(--text);font-weight:500">${l.descripcion}${l.ns ? ` <span style="color:var(--gold2);cursor:pointer;text-decoration:underline" onclick="verSocio('${l.ns}')">· #${l.ns}</span>` : ''}</div>
         <div class="log-meta">
           <strong>${l.usuario}</strong>
           <span class="role-badge ${{ admin:'role-admin', recepcionista:'role-recep', supervisor:'role-super' }[l.rol] || ''}" style="margin:0 6px">${l.rol}</span>
@@ -1676,7 +1682,7 @@ function renderReportes() {
           <th style="padding:8px;border-bottom:1px solid var(--border);color:var(--text3);text-align:left">Registró</th>
         </tr></thead>
         <tbody>${lista.map(p=>`<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:8px"><div style="font-weight:600;color:var(--text)">${p.NOMBRE}</div><div style="font-size:10px;color:var(--text3)">#${p.NS}</div></td>
+          <td style="padding:8px;cursor:pointer" onclick="verSocio('${p.NS}')"><div style="font-weight:600;color:var(--text)">${p.NOMBRE}</div><div style="font-size:10px;color:var(--text3)">#${p.NS}</div></td>
           <td style="padding:8px;color:var(--text2)">${p.MES||'—'}</td>
           <td style="padding:8px;color:var(--green2);font-weight:600">${fmt$((parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0))}</td>
           <td style="padding:8px;color:var(--text3);font-size:11px">${p.REGISTRADO_POR||'—'}</td>
@@ -1757,7 +1763,7 @@ function renderPendientes() {
         const ultP=pagos.filter(p=>p.NS===s.NS).slice(-1)[0];
         return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="verSocio('${s.NS}')">
           <td style="padding:11px 14px"><strong style="color:var(--gold2)">#${s.NS}</strong></td>
-          <td style="padding:11px 14px;color:var(--text);font-weight:500">${s.NOMBRE}</td>
+          <td style="padding:11px 14px;color:var(--text);font-weight:500;cursor:pointer;text-decoration:underline;text-decoration-color:var(--border)" onclick="event.stopPropagation();verSocio('${s.NS}')">${s.NOMBRE}</td>
           <td style="padding:11px 14px"><span class="badge b-gold">${s.ACADEMIA||'—'}</span></td>
           <td style="padding:11px 14px;color:var(--text3)">${s.CATEGORIA||'—'}</td>
           <td style="padding:11px 14px;color:var(--text3);font-size:12px">${ultP?`${ultP.MES} · ${ultP.FECHA_PAGO||'—'}`:'Sin pagos'}</td>
@@ -1767,6 +1773,74 @@ function renderPendientes() {
         </tr>`;}).join('')}</tbody>
     </table>`;
 }
+
+// ═══════════════════════════ SEGURO ═══════════════════════════
+let seguroNS = null;
+
+function abrirModalSeguro(ns) {
+  seguroNS = ns;
+  const s = socios.find(x => x.NS === ns.toString());
+  if (!s) return;
+  document.getElementById('seguro-nombre-lbl').textContent = `#${s.NS} — ${s.NOMBRE}`;
+  document.getElementById('seg-vigencia').value = s.SEGURO_VIGENCIA    || '';
+  document.getElementById('seg-monto').value    = s.SEGURO_MONTO        || '';
+  document.getElementById('seg-ref').value      = s.SEGURO_REFERENCIA   || '';
+  document.getElementById('seg-notas').value    = s.SEGURO_NOTAS        || '';
+  document.getElementById('seguro-al').innerHTML = '';
+  document.getElementById('mo-seguro').style.display = 'flex';
+}
+
+function guardarSeguro() {
+  const div      = document.getElementById('seguro-al');
+  const vigencia = document.getElementById('seg-vigencia').value;
+  const monto    = document.getElementById('seg-monto').value;
+  const notas    = document.getElementById('seg-notas').value;
+  const ref      = document.getElementById('seg-ref').value;
+  if (!vigencia) { div.innerHTML = '<div class="al al-err">La fecha de vigencia es obligatoria.</div>'; return; }
+  if (!monto)    { div.innerHTML = '<div class="al al-err">El monto del seguro es obligatorio.</div>'; return; }
+  const s = socios.find(x => x.NS === seguroNS.toString());
+  if (!s) return;
+
+  // Update socio fields
+  s.SEGURO_VIGENCIA     = vigencia;
+  s.SEGURO_MONTO        = monto;
+  s.SEGURO_NOTAS        = notas;
+  s.SEGURO_REFERENCIA   = ref;
+
+  // Register as payment entry so it shows in pagos/reportes
+  const mesActual = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+  const pagSeguro = {
+    NS:             s.NS,
+    NOMBRE:         s.NOMBRE,
+    INSCRIPCION:    '',
+    SEGURO:         parseFloat(monto),
+    MES:            mesActual,
+    MONTO:          0,
+    REFERENCIA:     ref || notas || 'Pago de seguro deportivo',
+    FECHA_PAGO:     hoy(),
+    DESCUENTO:      'NO APLICA',
+    ACADEMIA:       s.ACADEMIA,
+    CATEGORIA:      s.CATEGORIA,
+    REGISTRADO_POR: sesionActual ? sesionActual.nombre : '—',
+    ROL_REGISTRO:   sesionActual ? sesionActual.rol    : '—',
+    FECHA_REGISTRO: new Date().toLocaleDateString('es-MX'),
+    HORA_REGISTRO:  new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
+  };
+  pagos.push(pagSeguro);
+  actualizarStats();
+  cerrarMo('mo-seguro');
+
+  registrarLog('pago', `Seguro pagado · ${fmt$(monto)} · Vigente hasta ${vigencia}`, s.NS);
+  syncMsg('✅ Seguro registrado correctamente');
+
+  // Sync to Sheets
+  apiPost({ action: 'updateSocio', data: { NS: s.NS, ACTIVO: s.ACTIVO, SEGURO_VIGENCIA: s.SEGURO_VIGENCIA, SEGURO_MONTO: s.SEGURO_MONTO } });
+  apiPost({ action: 'addPago', data: pagSeguro });
+
+  // Reopen updated ficha
+  setTimeout(() => verSocio(seguroNS), 250);
+}
+
 
 // Show login on load
 document.getElementById('login-screen').style.display='flex';
