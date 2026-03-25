@@ -585,8 +585,11 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
 <!-- ══ VIEW: REPORTES ══ -->
 <div class="view" id="view-reportes">
   <div class="page-hdr">
-    <div><h1>Cortes y Reportes</h1><p>Resumen financiero por período</p></div>
-    <button class="btn btn-gold" onclick="imprimirCorte()">🖨 Imprimir Corte</button>
+    <div><h1>Cortes y Reportes</h1><p id="rep-last-update" style="color:var(--text3);font-size:12px">Resumen financiero por período</p></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="cargarYRenderReportes()">↺ Actualizar datos</button>
+      <button class="btn btn-gold" onclick="imprimirCorte()">🖨 Imprimir Corte</button>
+    </div>
   </div>
 
   <div class="periodo-tabs">
@@ -839,8 +842,8 @@ function showView(v) {
   if(v==='lockers') renderLockers();
   if(v==='alertas') renderAlertas();
   if(v==='inicio') renderInicio();
-  if(v==='reportes') { setPeriodo(periodoActual); renderReportes(); }
-  if(v==='pendientes') renderPendientes();
+  if(v==='reportes') cargarYRenderReportes();
+  if(v==='pendientes') cargarYRenderPendientes();
   if(v==='reportes') { renderReportes(); }
   if(v==='pendientes') { renderPendientes(); }
 }
@@ -1192,6 +1195,8 @@ function darDeAlta() {
   div.innerHTML=`<div class="al al-ok">✅ Socio <strong>${nuevo.NOMBRE}</strong> registrado como #${nuevoNS}</div>`;
   limpiarAlta();
   setTimeout(()=>div.innerHTML='',4000);
+  if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
   apiPost({action:'addSocio',data:nuevo}).then(r=>syncMsg(r&&r.ok?'✅ Guardado en Sheets':'⚠ Error Sheets',r&&r.ok));
 }
 
@@ -1202,14 +1207,22 @@ function pedirBaja(ns){bajaNS=ns;const s=socios.find(x=>x.NS===ns.toString());do
 function confirmarBaja(){
   const s=socios.find(x=>x.NS===bajaNS.toString());
   if(s)s.ACTIVO=false;
-  cerrarMo('mo-baja');actualizarStats();renderSocios();
+  cerrarMo('mo-baja');
+  actualizarStats();
+  if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
+  if(document.getElementById('view-buscar')?.classList.contains('active')) buscarSocio();
+  if(document.getElementById('view-alertas')?.classList.contains('active')) renderAlertas();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
   if(s) registrarLog('baja', `Baja de socio: ${s.NOMBRE}`, s.NS);
   if(s) apiPost({action:'updateSocio',data:{NS:s.NS,ACTIVO:false}}).then(r=>syncMsg(r&&r.ok?'✅ Baja guardada':'⚠ Error',r&&r.ok));
 }
 function reactivar(ns){
   const s=socios.find(x=>x.NS===ns.toString());
   if(s)s.ACTIVO=true;
-  actualizarStats();renderSocios();
+  actualizarStats();
+  if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
+  if(document.getElementById('view-buscar')?.classList.contains('active')) buscarSocio();
+  if(document.getElementById('view-alertas')?.classList.contains('active')) renderAlertas();
   if(s) registrarLog('reactivar', `Reactivación: ${s.NOMBRE}`, s.NS);
   if(s) apiPost({action:'updateSocio',data:{NS:s.NS,ACTIVO:true}}).then(r=>syncMsg(r&&r.ok?'✅ Reactivado':'⚠ Error',r&&r.ok));
 }
@@ -1282,8 +1295,8 @@ function guardarPago(imprimir=true) {
   const _cP=new Set(pagos.filter(p=>p.MES===_mA).map(p=>p.NS));
   const _nP=socios.filter(s=>s.ACTIVO!==false&&!_cP.has(s.NS)).length;
   const _bp=document.getElementById('badge-pendientes'); if(_bp)_bp.textContent=_nP;
-  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
-  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) cargarYRenderReportes();
   apiPost({action:'addPago',data:nuevo}).then(r=>syncMsg(r&&r.ok?'✅ Pago guardado':'⚠ Error',r&&r.ok));
   if(imprimir) setTimeout(()=>imprimirRecibo(nuevo),300);
 }
@@ -1298,8 +1311,8 @@ function eliminarPago(idx){
   const _cP=new Set(pagos.filter(p=>p.MES===_mA).map(p=>p.NS));
   const _nP=socios.filter(s=>s.ACTIVO!==false&&!_cP.has(s.NS)).length;
   const _bp=document.getElementById('badge-pendientes'); if(_bp)_bp.textContent=_nP;
-  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
-  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) cargarYRenderReportes();
 }
 
 // ═══════════════════════════ IMPRIMIR FICHA ═══════════════════════════
@@ -1423,7 +1436,7 @@ function guardarLocker(oldNL, oldG){
   if(existing>=0) lockers[existing]=obj;
   else lockers.push(obj);
   cerrarMo('mo-locker');
-  renderLockers();
+  if(document.getElementById('view-lockers')?.classList.contains('active')) renderLockers();
   registrarLog('locker', `Locker ${nl} (${genero==='H'?'Hombres':'Mujeres'}) actualizado`, ns||'');
 }
 
@@ -1678,6 +1691,9 @@ function renderReportes() {
 
   const cards = document.getElementById('rep-cards');
   if (!cards) return;
+  // Update timestamp
+  const lupd = document.getElementById('rep-last-update');
+  if(lupd) lupd.textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   cards.innerHTML = `
     <div class="rep-card gold"><div class="rv">${lista.length}</div><div class="rl">Pagos Registrados</div><div class="rsub">${getPeriodoLabel()}</div></div>
     <div class="rep-card green"><div class="rv">${fmt$(totalDinero)}</div><div class="rl">Total Ingresado</div><div class="rsub">Suma de todos los conceptos</div></div>
@@ -1855,8 +1871,8 @@ function guardarSeguro() {
   actualizarStats();
   cerrarMo('mo-seguro');
   // Refresh pendientes and reportes if open
-  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
-  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) cargarYRenderReportes();
   else {
     const _mA2=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
     const _cP2=new Set(pagos.filter(p=>p.MES===_mA2).map(p=>p.NS));
@@ -1875,11 +1891,35 @@ function guardarSeguro() {
 }
 
 
-// Auto-refresh reportes and pendientes every 30s
+// Auto-refresh every 20s — pulls fresh data from Sheets
 setInterval(() => {
-  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
-  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
-}, 30000);
+  if(document.getElementById('view-reportes')?.classList.contains('active')) cargarYRenderReportes();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
+}, 20000);
+
+// ═══════════════════════════ SYNC + RENDER ═══════════════════════════
+// Fetches fresh data from Sheets then renders — bridges multi-session gap
+async function cargarYRenderReportes() {
+  const btn = document.querySelector('#view-reportes .btn-gold');
+  if(btn){ const orig=btn.textContent; btn.textContent='⏳ Actualizando...'; btn.disabled=true;
+    setTimeout(()=>{ btn.textContent=orig; btn.disabled=false; }, 3000); }
+
+  const [sd, pd] = await Promise.all([apiGet('getSocios'), apiGet('getPagos')]);
+  if(sd && Array.isArray(sd) && sd.length > 0) socios = sd;
+  if(pd && Array.isArray(pd) && pd.length > 0) pagos  = pd;
+  actualizarStats();
+  setPeriodo(periodoActual);
+  renderReportes();
+  syncMsg('✅ Datos actualizados desde Sheets');
+}
+
+async function cargarYRenderPendientes() {
+  const [sd, pd] = await Promise.all([apiGet('getSocios'), apiGet('getPagos')]);
+  if(sd && Array.isArray(sd) && sd.length > 0) socios = sd;
+  if(pd && Array.isArray(pd) && pd.length > 0) pagos  = pd;
+  actualizarStats();
+  renderPendientes();
+}
 
 // Show login on load
 document.getElementById('login-screen').style.display='flex';
