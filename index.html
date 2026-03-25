@@ -678,7 +678,13 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
         <div class="fg"><label>Monto ($) *</label><input type="number" id="p-monto" placeholder="0.00" min="0"></div>
         <div class="fg"><label>Inscripción ($)</label><input type="number" id="p-inscripcion" placeholder="0" min="0"></div>
         <div class="fg"><label>Seguro ($)</label><input type="number" id="p-seguro" placeholder="0" min="0"></div>
-        <div class="fg"><label>Descuento</label><input type="text" id="p-descuento" placeholder="Ej. 20% ESTUDIANTE UDG o NO APLICA"></div>
+        <div class="fg"><label>Descuento</label>
+          <select class="fs" id="p-descuento">
+            <option value="NO APLICA">Sin descuento (NO APLICA)</option>
+            <option value="20% ESTUDIANTE UDG">20% Descuento UDG</option>
+            <option value="50% ADULTO MAYOR">50% Adulto Mayor</option>
+          </select>
+        </div>
         <div class="fg"><label>Referencia / Folio</label><input type="text" id="p-ref" placeholder="Número de referencia"></div>
         <div class="fg"><label>Academia</label><input type="text" id="p-academia" readonly></div>
         <div class="fg"><label>Categoría</label><input type="text" id="p-cat" readonly></div>
@@ -833,7 +839,7 @@ function showView(v) {
   if(v==='lockers') renderLockers();
   if(v==='alertas') renderAlertas();
   if(v==='inicio') renderInicio();
-  if(v==='reportes') renderReportes();
+  if(v==='reportes') { setPeriodo(periodoActual); renderReportes(); }
   if(v==='pendientes') renderPendientes();
   if(v==='reportes') { renderReportes(); }
   if(v==='pendientes') { renderPendientes(); }
@@ -1217,7 +1223,7 @@ function abrirModalPago(ns) {
   document.getElementById('p-monto').value='';
   document.getElementById('p-inscripcion').value='';
   document.getElementById('p-seguro').value='';
-  document.getElementById('p-descuento').value='NO APLICA';
+  const _dsel=document.getElementById('p-descuento'); if(_dsel) _dsel.value='NO APLICA';
   document.getElementById('p-ref').value='';
   document.getElementById('p-fecha').value=hoy();
   document.getElementById('p-vencimiento').value='';
@@ -1271,11 +1277,30 @@ function guardarPago(imprimir=true) {
   actualizarStats();
   cerrarMo('mo-pago');
   renderPagos();
+  // Refresh pendientes badge
+  const _mA=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+  const _cP=new Set(pagos.filter(p=>p.MES===_mA).map(p=>p.NS));
+  const _nP=socios.filter(s=>s.ACTIVO!==false&&!_cP.has(s.NS)).length;
+  const _bp=document.getElementById('badge-pendientes'); if(_bp)_bp.textContent=_nP;
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
   apiPost({action:'addPago',data:nuevo}).then(r=>syncMsg(r&&r.ok?'✅ Pago guardado':'⚠ Error',r&&r.ok));
   if(imprimir) setTimeout(()=>imprimirRecibo(nuevo),300);
 }
 
-function eliminarPago(idx){if(!puedeHacer('eliminarPago')){alert('⛔ No tienes permiso para eliminar pagos.');return;}if(!confirm('¿Eliminar este pago?'))return;pagos.splice(idx,1);actualizarStats();renderPagos();}
+function eliminarPago(idx){
+  if(!puedeHacer('eliminarPago')){alert('⛔ No tienes permiso para eliminar pagos.');return;}
+  if(!confirm('¿Eliminar este pago?'))return;
+  pagos.splice(idx,1);
+  actualizarStats();
+  renderPagos();
+  const _mA=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+  const _cP=new Set(pagos.filter(p=>p.MES===_mA).map(p=>p.NS));
+  const _nP=socios.filter(s=>s.ACTIVO!==false&&!_cP.has(s.NS)).length;
+  const _bp=document.getElementById('badge-pendientes'); if(_bp)_bp.textContent=_nP;
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+}
 
 // ═══════════════════════════ IMPRIMIR FICHA ═══════════════════════════
 function imprimirFicha(ns) {
@@ -1829,7 +1854,15 @@ function guardarSeguro() {
   pagos.push(pagSeguro);
   actualizarStats();
   cerrarMo('mo-seguro');
-
+  // Refresh pendientes and reportes if open
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
+  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+  else {
+    const _mA2=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+    const _cP2=new Set(pagos.filter(p=>p.MES===_mA2).map(p=>p.NS));
+    const _nP2=socios.filter(s=>s.ACTIVO!==false&&!_cP2.has(s.NS)).length;
+    const _bp2=document.getElementById('badge-pendientes'); if(_bp2)_bp2.textContent=_nP2;
+  }
   registrarLog('pago', `Seguro pagado · ${fmt$(monto)} · Vigente hasta ${vigencia}`, s.NS);
   syncMsg('✅ Seguro registrado correctamente');
 
@@ -1841,6 +1874,12 @@ function guardarSeguro() {
   setTimeout(() => verSocio(seguroNS), 250);
 }
 
+
+// Auto-refresh reportes and pendientes every 30s
+setInterval(() => {
+  if(document.getElementById('view-reportes')?.classList.contains('active')) renderReportes();
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
+}, 30000);
 
 // Show login on load
 document.getElementById('login-screen').style.display='flex';
