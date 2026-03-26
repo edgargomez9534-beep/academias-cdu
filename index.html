@@ -842,7 +842,18 @@ function showView(v) {
   if(v==='lockers') renderLockers();
   if(v==='alertas') renderAlertas();
   if(v==='inicio') renderInicio();
-  if(v==='reportes') cargarYRenderReportes();
+  if(v==='reportes') {
+    // Restore tab UI for current period without resetting it
+    ['hoy','semana','mes','custom'].forEach(x => {
+      document.getElementById('pt-'+x)?.classList.toggle('active', x===periodoActual);
+    });
+    document.getElementById('custom-rango').style.display = periodoActual==='custom' ? '' : 'none';
+    renderReportes(); // render immediately with cached data
+    // Then silently refresh data in background
+    apiGet('getPagos').then(pd => {
+      if(pd && Array.isArray(pd) && pd.length > 0) { pagos = pd; actualizarStats(); renderReportes(); }
+    });
+  }
   if(v==='pendientes') cargarYRenderPendientes();
   if(v==='reportes') { renderReportes(); }
   if(v==='pendientes') { renderPendientes(); }
@@ -1649,7 +1660,7 @@ function setPeriodo(p) {
     document.getElementById('pt-'+x)?.classList.toggle('active', x===p);
   });
   document.getElementById('custom-rango').style.display = p==='custom' ? '' : 'none';
-  renderReportes(); // renders with current in-memory data immediately
+  renderReportes();
 }
 
 function normalizarFecha(val) {
@@ -1911,31 +1922,36 @@ function guardarSeguro() {
 }
 
 
-// Auto-refresh every 20s — pulls fresh data from Sheets
-setInterval(() => {
-  if(document.getElementById('view-reportes')?.classList.contains('active')) cargarYRenderReportes();
-  if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
-}, 20000);
+// Auto-refresh every 60s — only pulls pagos data, never resets selected period
+setInterval(async () => {
+  if(document.getElementById('view-reportes')?.classList.contains('active')) {
+    const pd = await apiGet('getPagos');
+    if(pd && Array.isArray(pd) && pd.length > 0) pagos = pd;
+    actualizarStats();
+    renderReportes(); // uses periodoActual as-is
+  }
+  if(document.getElementById('view-pendientes')?.classList.contains('active')) {
+    cargarYRenderPendientes();
+  }
+}, 60000);
 
 // ═══════════════════════════ SYNC + RENDER ═══════════════════════════
 // Fetches fresh data from Sheets then renders — bridges multi-session gap
 async function cargarYRenderReportes() {
-  // Show loading state
   const lupd = document.getElementById('rep-last-update');
-  if(lupd) lupd.textContent = '⏳ Cargando datos desde Google Sheets...';
-  const btns = document.querySelectorAll('#view-reportes .btn');
-  btns.forEach(b=>b.disabled=true);
+  if(lupd) lupd.textContent = '⏳ Actualizando desde Google Sheets...';
 
-  const [sd, pd] = await Promise.all([apiGet('getSocios'), apiGet('getPagos')]);
+  const pd = await apiGet('getPagos');
+  if(pd && Array.isArray(pd) && pd.length > 0) pagos = pd;
 
-  if(sd && Array.isArray(sd) && sd.length > 0) socios = sd;
-  if(pd && Array.isArray(pd) && pd.length > 0) {
-    pagos = pd;
-  }
-  btns.forEach(b=>b.disabled=false);
   actualizarStats();
+  // Restore the active period tab UI without resetting periodoActual
+  ['hoy','semana','mes','custom'].forEach(x => {
+    document.getElementById('pt-'+x)?.classList.toggle('active', x===periodoActual);
+  });
+  document.getElementById('custom-rango').style.display = periodoActual==='custom' ? '' : 'none';
   renderReportes();
-  syncMsg('✅ Datos actualizados desde Sheets');
+  syncMsg('✅ Datos actualizados');
 }
 
 async function cargarYRenderPendientes() {
