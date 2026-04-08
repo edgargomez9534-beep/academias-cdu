@@ -388,6 +388,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   <div class="nav-item" onclick="showView('log')" id="nav-log"><span class="ni">📋</span>Log de Actividad</div>
   <div class="nav-bottom">
     <button class="btn-export" id="btn-exportar" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    <button class="btn-export" style="margin-top:6px" onclick="forzarSyncSheets()" id="btn-sync">🔄 Forzar Sync Sheets</button>
     <button class="btn-export" style="margin-top:6px" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
   </div>
 </nav>
@@ -1201,6 +1202,7 @@ function darDeAlta() {
   };
   if(!puedeHacer('alta')){ div.innerHTML='<div class="al al-err">⛔ No tienes permiso para dar de alta socios.</div>'; return; }
   socios.push(nuevo);
+  guardarTodoLocal(); // persist to localStorage immediately
   actualizarStats();
   registrarLog('alta', `Alta de socio: ${nuevo.NOMBRE}`, nuevoNS);
   div.innerHTML=`<div class="al al-ok">✅ Socio <strong>${nuevo.NOMBRE}</strong> registrado como #${nuevoNS}</div>`;
@@ -1218,6 +1220,7 @@ function pedirBaja(ns){bajaNS=ns;const s=socios.find(x=>x.NS===ns.toString());do
 function confirmarBaja(){
   const s=socios.find(x=>x.NS===bajaNS.toString());
   if(s)s.ACTIVO=false;
+  guardarTodoLocal(); // persist to localStorage immediately
   cerrarMo('mo-baja');
   actualizarStats();
   if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
@@ -1230,6 +1233,7 @@ function confirmarBaja(){
 function reactivar(ns){
   const s=socios.find(x=>x.NS===ns.toString());
   if(s)s.ACTIVO=true;
+  guardarTodoLocal(); // persist to localStorage immediately
   actualizarStats();
   if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
   if(document.getElementById('view-buscar')?.classList.contains('active')) buscarSocio();
@@ -1296,8 +1300,13 @@ function guardarPago(imprimir=true) {
     HORA_REGISTRO: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
   };
   const venc=document.getElementById('p-vencimiento').value;
-  if(venc && s){ s.VENCIMIENTO=venc; }
+  if(venc && s){
+    s.VENCIMIENTO=venc;
+    // Sync vencimiento to Sheets so it persists across sessions
+    apiPost({action:'updateSocio', data:{NS:s.NS, ACTIVO:s.ACTIVO, VENCIMIENTO:venc}});
+  }
   pagos.push(nuevo);
+  guardarTodoLocal(); // persist to localStorage immediately
   actualizarStats();
   cerrarMo('mo-pago');
   renderPagos();
@@ -1316,6 +1325,7 @@ function eliminarPago(idx){
   if(!puedeHacer('eliminarPago')){alert('⛔ No tienes permiso para eliminar pagos.');return;}
   if(!confirm('¿Eliminar este pago?'))return;
   pagos.splice(idx,1);
+  guardarTodoLocal(); // persist to localStorage immediately
   actualizarStats();
   renderPagos();
   const _mA=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
@@ -1446,6 +1456,7 @@ function guardarLocker(oldNL, oldG){
   const obj={NC:nl,NL:nl,NS:ns,NOMBRE:nombre,ESTATUS:estatus,MES_INICIO:mes,FECHA_PAGO1:fecha,GENERO:genero};
   if(existing>=0) lockers[existing]=obj;
   else lockers.push(obj);
+  guardarTodoLocal(); // persist to localStorage immediately
   cerrarMo('mo-locker');
   if(document.getElementById('view-lockers')?.classList.contains('active')) renderLockers();
   registrarLog('locker', `Locker ${nl} (${genero==='H'?'Hombres':'Mujeres'}) actualizado`, ns||'');
@@ -1454,6 +1465,7 @@ function guardarLocker(oldNL, oldG){
 function liberarLocker(nl,genero){
   const idx=lockers.findIndex(x=>x.NL===nl&&x.GENERO===genero);
   if(idx>=0){lockers[idx].ESTATUS='LIBRE';lockers[idx].NS='';lockers[idx].NOMBRE='';lockers[idx].MES_INICIO='';lockers[idx].FECHA_PAGO1='';}
+  guardarTodoLocal(); // persist to localStorage immediately
   cerrarMo('mo-locker');renderLockers();
 }
 
@@ -1470,17 +1482,102 @@ function exportarCSV(){
 
 // ═══════════════════════════ START ═══════════════════════════
 async function start() {
-  actualizarStats();
-  renderInicio();
-  const el=document.getElementById('sync-status');
-  el.textContent='⏳ Conectando...';el.style.color='var(--gold2)';
-  const [sd,pd]=await Promise.all([apiGet('getSocios'),apiGet('getPagos')]);
-  if(sd&&Array.isArray(sd)&&sd.length>0){socios=sd;}
-  if(pd&&Array.isArray(pd)&&pd.length>0){pagos=pd;}
-  actualizarStats();renderInicio();
-  el.textContent=sd?'● Conectado':'⚠ Sin conexión';el.style.color=sd?'var(--green2)':'var(--red2)';
+  const el = document.getElementById('sync-status');
+
+  // STEP 1 — Load from localStorage instantly (no network needed)
+  const teníaLocal = cargarDesdeLocal();
+  if (teníaLocal) {
+    actualizarStats();
+    renderInicio();
+    const meta = getMeta();
+    const ultima = meta.ultimaSync ? new Date(meta.ultimaSync).toLocaleString('es-MX') : 'desconocida';
+    el.textContent = `💾 Local · última sync: ${ultima}`;
+    el.style.color = 'var(--gold2)';
+  } else {
+    el.textContent = '⏳ Cargando...';
+    el.style.color = 'var(--gold2)';
+  }
+
+  // STEP 2 — Sync with Sheets in background
+  try {
+    const [sd, pd] = await Promise.all([apiGet('getSocios'), apiGet('getPagos')]);
+    let actualizado = false;
+
+    if (sd && Array.isArray(sd) && sd.length > 0) {
+      // Merge: Sheets is source of truth for base data
+      // but keep local-only fields like SEGURO if Sheets doesn't have them yet
+      socios = sd.map(s => {
+        const local = socios.find(x => x.NS === s.NS);
+        return local ? { ...local, ...s } : s; // Sheets overrides, local fills gaps
+      });
+      actualizado = true;
+    }
+    if (pd && Array.isArray(pd) && pd.length > 0) {
+      // Merge pagos: keep local new pagos not yet in Sheets, add Sheets pagos
+      const sheetsNS_Fecha = new Set(pd.map(p => p.NS + '|' + (p.FECHA_REGISTRO || p.FECHA_PAGO)));
+      const soloLocales = pagos.filter(p => !sheetsNS_Fecha.has(p.NS + '|' + (p.FECHA_REGISTRO || p.FECHA_PAGO)));
+      pagos = [...pd, ...soloLocales];
+      actualizado = true;
+    }
+
+    if (actualizado) {
+      guardarTodoLocal(); // update localStorage with fresh Sheets data
+      dataCargada = true;
+      actualizarStats();
+      renderInicio();
+      el.textContent = '● Conectado a Sheets';
+      el.style.color = 'var(--green2)';
+    }
+  } catch(e) {
+    el.textContent = '💾 Sin conexión — usando datos locales';
+    el.style.color = 'var(--orange)';
+    dataCargada = true;
+  }
 }
 
+
+
+// ═══════════════════════════ STORAGE HYBRID ═══════════════════════════
+// Every change saves to localStorage immediately + syncs to Sheets async
+// On open: loads localStorage first (instant), then syncs with Sheets
+
+const LS_SOCIOS  = 'cdu_socios_v1';
+const LS_PAGOS   = 'cdu_pagos_v1';
+const LS_LOCKERS = 'cdu_lockers_v1';
+const LS_LOG     = 'cdu_log_v1';
+const LS_META    = 'cdu_meta_v1';
+
+function lsGuardar(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { console.warn('localStorage write error:', e); }
+}
+
+function lsLeer(key) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch(e) { return null; }
+}
+
+function guardarTodoLocal() {
+  lsGuardar(LS_SOCIOS,  socios);
+  lsGuardar(LS_PAGOS,   pagos);
+  lsGuardar(LS_LOCKERS, lockers);
+  lsGuardar(LS_LOG,     activityLog.slice(0, 200)); // keep last 200 entries
+  lsGuardar(LS_META,    { ultimaSync: new Date().toISOString(), version: 1 });
+}
+
+function cargarDesdeLocal() {
+  const s = lsLeer(LS_SOCIOS);
+  const p = lsLeer(LS_PAGOS);
+  const l = lsLeer(LS_LOCKERS);
+  const lg = lsLeer(LS_LOG);
+  if (s && s.length > 0) socios  = s;
+  if (p && p.length > 0) pagos   = p;
+  if (l && l.length > 0) lockers = l;
+  if (lg && lg.length > 0) activityLog = lg;
+  return !!(s && p); // returns true if local data existed
+}
+
+function getMeta() {
+  return lsLeer(LS_META) || {};
+}
 
 // ═══════════════════════════ USUARIOS Y ROLES ═══════════════════════════
 const USUARIOS = [
@@ -1508,6 +1605,7 @@ const ACCIONES = {
 
 let sesionActual = null;
 let activityLog  = [];
+let dataCargada  = false; // tracks if Sheets data has been loaded at least once
 
 // ── Login ────────────────────────────────────────────
 function doLogin() {
@@ -1525,12 +1623,24 @@ function doLogin() {
   registrarLog('login', `Inicio de sesión`, null);
   aplicarPermisos();
   renderUserChip();
-  start();
+  // Only call start() on first login — after that data is already in memory
+  if (!dataCargada) {
+    start();
+  } else {
+    // Just refresh stats and inicio without reloading all data
+    actualizarStats();
+    renderInicio();
+    // Silently sync in background
+    apiGet('getPagos').then(pd => {
+      if(pd && Array.isArray(pd) && pd.length > 0) { pagos = pd; actualizarStats(); renderInicio(); }
+    });
+  }
 }
 
 function cerrarSesion() {
   if (!confirm('¿Cerrar sesión?')) return;
   registrarLog('login', 'Cierre de sesión', null);
+  guardarTodoLocal(); // save everything before logout
   sesionActual = null;
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-user').value = '';
@@ -1595,6 +1705,7 @@ function renderUserChip() {
 
 // ── Log ──────────────────────────────────────────────
 function registrarLog(tipo, descripcion, ns) {
+  // auto-save log to localStorage after each entry
   activityLog.unshift({
     tipo, descripcion, ns: ns || '',
     usuario: sesionActual ? sesionActual.nombre : '—',
@@ -1602,8 +1713,9 @@ function registrarLog(tipo, descripcion, ns) {
     fecha: new Date().toISOString().slice(0,10),
     hora: new Date().toLocaleTimeString('es-MX', {hour:'2-digit',minute:'2-digit',second:'2-digit'})
   });
-  // Max 500 entradas
+  // Max 200 entradas in localStorage, 500 in memory
   if (activityLog.length > 500) activityLog.pop();
+  lsGuardar(LS_LOG, activityLog.slice(0, 200));
   // Actualizar badge si hay log view activo
   renderLog();
 }
@@ -1878,6 +1990,7 @@ function guardarSeguro() {
   s.SEGURO_MONTO        = monto;
   s.SEGURO_NOTAS        = notas;
   s.SEGURO_REFERENCIA   = ref;
+  guardarTodoLocal(); // persist socio seguro changes to localStorage
 
   // Register as payment entry so it shows in pagos/reportes
   const mesActual = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
@@ -1899,6 +2012,7 @@ function guardarSeguro() {
     HORA_REGISTRO:  new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
   };
   pagos.push(pagSeguro);
+  guardarTodoLocal(); // persist to localStorage immediately
   actualizarStats();
   cerrarMo('mo-seguro');
   // Refresh pendientes and reportes if open
@@ -1962,8 +2076,27 @@ async function cargarYRenderPendientes() {
   renderPendientes();
 }
 
+// Force full sync from Sheets (admin tool)
+async function forzarSyncSheets() {
+  const btn = document.getElementById('btn-sync');
+  if(btn){ btn.textContent='⏳ Sincronizando...'; btn.disabled=true; }
+  const [sd, pd] = await Promise.all([apiGet('getSocios'), apiGet('getPagos')]);
+  if(sd && Array.isArray(sd) && sd.length > 0) socios = sd;
+  if(pd && Array.isArray(pd) && pd.length > 0) pagos  = pd;
+  guardarTodoLocal();
+  actualizarStats();
+  renderInicio();
+  syncMsg('✅ Sync completo desde Sheets');
+  if(btn){ btn.textContent='🔄 Forzar Sync Sheets'; btn.disabled=false; }
+}
+
 // Show login on load
 document.getElementById('login-screen').style.display='flex';
+
+// Save to localStorage when browser/tab closes
+window.addEventListener('beforeunload', () => {
+  guardarTodoLocal();
+});
 </script>
 </body>
 </html>
