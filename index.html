@@ -1306,6 +1306,8 @@ function guardarPago(imprimir=true) {
   const div=document.getElementById('pago-al');
   if(!ns){div.innerHTML='<div class="al al-err">El N° de socio es obligatorio.</div>';return;}
   if(!monto){div.innerHTML='<div class="al al-err">El monto es obligatorio.</div>';return;}
+  const ref_pago=document.getElementById('p-ref').value.trim();
+  if(!ref_pago){div.innerHTML='<div class="al al-err">El número de referencia es obligatorio.</div>';return;}
   const s=socios.find(x=>x.NS===ns);
   const nuevo={
     NS:ns, NOMBRE:s?s.NOMBRE:document.getElementById('p-nombre').value,
@@ -2018,6 +2020,7 @@ function guardarSeguro() {
   const ref      = document.getElementById('seg-ref').value;
   if (!vigencia) { div.innerHTML = '<div class="al al-err">La fecha de vigencia es obligatoria.</div>'; return; }
   if (!monto)    { div.innerHTML = '<div class="al al-err">El monto del seguro es obligatorio.</div>'; return; }
+  if (!ref)      { div.innerHTML = '<div class="al al-err">El número de referencia del seguro es obligatorio.</div>'; return; }
   const s = socios.find(x => x.NS === seguroNS.toString());
   if (!s) return;
 
