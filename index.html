@@ -1301,13 +1301,15 @@ function autoFillPago(){
 }
 
 function guardarPago(imprimir=true) {
-  const ns=document.getElementById('p-ns').value.trim();
-  const monto=document.getElementById('p-monto').value;
-  const div=document.getElementById('pago-al');
-  if(!ns){div.innerHTML='<div class="al al-err">El N° de socio es obligatorio.</div>';return;}
-  if(!monto){div.innerHTML='<div class="al al-err">El monto es obligatorio.</div>';return;}
-  const ref_pago=document.getElementById('p-ref').value.trim();
-  if(!ref_pago){div.innerHTML='<div class="al al-err">El número de referencia es obligatorio.</div>';return;}
+  const div   = document.getElementById('pago-al');
+  const ns    = document.getElementById('p-ns').value.trim();
+  const monto = document.getElementById('p-monto').value.trim();
+  const ref   = document.getElementById('p-ref').value.trim();
+
+  // Validate all required fields
+  if (!ns)    { div.innerHTML='<div class="al al-err">⚠ El N° de socio es obligatorio.</div>'; return; }
+  if (!monto) { div.innerHTML='<div class="al al-err">⚠ El monto es obligatorio.</div>'; return; }
+  if (!ref)   { div.innerHTML='<div class="al al-err">⚠ El número de referencia es obligatorio.</div>'; return; }
   const s=socios.find(x=>x.NS===ns);
   const nuevo={
     NS:ns, NOMBRE:s?s.NOMBRE:document.getElementById('p-nombre').value,
@@ -1315,7 +1317,7 @@ function guardarPago(imprimir=true) {
     SEGURO:document.getElementById('p-seguro').value||'',
     MES:document.getElementById('p-mes').value,
     MONTO:parseFloat(monto),
-    REFERENCIA:document.getElementById('p-ref').value,
+    REFERENCIA:ref,
     FECHA_PAGO:document.getElementById('p-fecha').value,
     DESCUENTO:document.getElementById('p-descuento').value||'NO APLICA',
     ACADEMIA:s?s.ACADEMIA:'',
@@ -2014,13 +2016,14 @@ function abrirModalSeguro(ns) {
 
 function guardarSeguro() {
   const div      = document.getElementById('seguro-al');
-  const vigencia = document.getElementById('seg-vigencia').value;
-  const monto    = document.getElementById('seg-monto').value;
-  const notas    = document.getElementById('seg-notas').value;
-  const ref      = document.getElementById('seg-ref').value;
-  if (!vigencia) { div.innerHTML = '<div class="al al-err">La fecha de vigencia es obligatoria.</div>'; return; }
-  if (!monto)    { div.innerHTML = '<div class="al al-err">El monto del seguro es obligatorio.</div>'; return; }
-  if (!ref)      { div.innerHTML = '<div class="al al-err">El número de referencia del seguro es obligatorio.</div>'; return; }
+  const vigencia = document.getElementById('seg-vigencia').value.trim();
+  const monto    = document.getElementById('seg-monto').value.trim();
+  const notas    = document.getElementById('seg-notas').value.trim();
+  const ref      = document.getElementById('seg-ref').value.trim();
+
+  if (!vigencia) { div.innerHTML = '<div class="al al-err">⚠ La fecha de vigencia es obligatoria.</div>'; return; }
+  if (!monto)    { div.innerHTML = '<div class="al al-err">⚠ El monto del seguro es obligatorio.</div>'; return; }
+  if (!ref)      { div.innerHTML = '<div class="al al-err">⚠ El número de referencia del seguro es obligatorio.</div>'; return; }
   const s = socios.find(x => x.NS === seguroNS.toString());
   if (!s) return;
 
