@@ -587,9 +587,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
 <div class="view" id="view-reportes">
   <div class="page-hdr">
     <div><h1>Cortes y Reportes</h1><p id="rep-last-update" style="color:var(--text3);font-size:12px">Resumen financiero por período</p></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" onclick="cargarYRenderReportes()">↺ Actualizar datos</button>
-      <button class="btn btn-gold" onclick="imprimirCorte()">🖨 Imprimir Corte</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="cargarYRenderReportes()">↺ Actualizar</button>
+      <button class="btn btn-blue" onclick="exportarExcelCorte()">⬇ Exportar Excel</button>
+      <button class="btn btn-gold" onclick="imprimirCorte()">🖨 Imprimir</button>
     </div>
   </div>
 
@@ -1725,13 +1726,9 @@ function renderUserChip() {
     supervisor: 'Solo lectura · Log de actividad'
   }[sesionActual.rol];
   document.getElementById('user-chip-wrap').innerHTML = `
-    <div class="user-chip" title="Permisos: ${permisosList}" style="cursor:default">
+    <div class="user-chip" style="cursor:default">
       <div class="uc-av">${sesionActual.nombre[0]}</div>
-      <div style="line-height:1.2">
-        <div style="font-size:13px;font-weight:600;color:var(--text)">${sesionActual.nombre}</div>
-        <div style="font-size:10px;color:var(--text3)">${permisosList}</div>
-      </div>
-      <span class="role-badge ${roleClass}" style="margin-left:4px">${roleLabel}</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text)">${sesionActual.nombre}</span>
     </div>`;
 }
 
@@ -1846,8 +1843,10 @@ function getListaPeriodo() {
     hasta = document.getElementById('rango-hasta')?.value || ahora.toISOString().slice(0,10);
   }
   return pagos.filter(p => {
-    // Priority: FECHA_REGISTRO (when it was entered in system) > FECHA_PAGO (date on receipt)
-    const raw = p.FECHA_REGISTRO || p.FECHA_PAGO || '';
+    // Try FECHA_REGISTRO first, fall back to FECHA_PAGO
+    const raw = (p.FECHA_REGISTRO && p.FECHA_REGISTRO.length >= 8)
+      ? p.FECHA_REGISTRO
+      : (p.FECHA_PAGO || '');
     const f = normalizarFecha(raw);
     if (!f) return false;
     return f >= desde && f <= hasta;
@@ -2125,6 +2124,73 @@ async function forzarSyncSheets() {
   renderInicio();
   syncMsg('✅ Sync completo desde Sheets');
   if(btn){ btn.textContent='🔄 Forzar Sync Sheets'; btn.disabled=false; }
+}
+
+// ─── EXPORTAR EXCEL CORTE ───────────────────────────
+function exportarExcelCorte() {
+  const lista = getListaPeriodo();
+  if (!lista.length) {
+    alert('No hay pagos en el período seleccionado.');
+    return;
+  }
+
+  const periodo = getPeriodoLabel();
+  const totalDinero   = lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0)+(parseFloat(p.INSCRIPCION)||0)+(parseFloat(p.SEGURO)||0),0);
+  const totalMens     = lista.reduce((a,p)=>a+(parseFloat(p.MONTO)||0),0);
+  const totalInsc     = lista.reduce((a,p)=>a+(parseFloat(p.INSCRIPCION)||0),0);
+  const totalSeg      = lista.reduce((a,p)=>a+(parseFloat(p.SEGURO)||0),0);
+
+  // Build CSV with BOM for Excel Spanish compatibility
+  const filas = [
+    // Title rows
+    [`ACADEMIAS DEPORTIVAS CDU — CORTE DE CAJA`],
+    [`Período: ${periodo}`],
+    [`Generado: ${new Date().toLocaleString('es-MX')}`],
+    [`Generado por: ${sesionActual?.nombre || '—'}`],
+    [],
+    // Summary
+    [`RESUMEN`],
+    [`Total de pagos`, lista.length],
+    [`Mensualidades`, totalMens],
+    [`Inscripciones`, totalInsc],
+    [`Seguros`, totalSeg],
+    [`TOTAL INGRESADO`, totalDinero],
+    [],
+    // Detail header
+    [`N° SOCIO`,`NOMBRE`,`ACADEMIA`,`CATEGORÍA`,`MES`,`MENSUALIDAD`,`INSCRIPCIÓN`,`SEGURO`,`DESCUENTO`,`REFERENCIA`,`FECHA PAGO`,`REGISTRADO POR`,`HORA REGISTRO`],
+    // Detail rows
+    ...lista.map(p => [
+      p.NS,
+      p.NOMBRE,
+      p.ACADEMIA || '',
+      p.CATEGORIA || '',
+      p.MES || '',
+      parseFloat(p.MONTO) || 0,
+      parseFloat(p.INSCRIPCION) || 0,
+      parseFloat(p.SEGURO) || 0,
+      p.DESCUENTO || 'NO APLICA',
+      p.REFERENCIA || '',
+      p.FECHA_PAGO || '',
+      p.REGISTRADO_POR || '',
+      p.HORA_REGISTRO || ''
+    ])
+  ];
+
+  const csv = filas.map(fila =>
+    fila.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fecha = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `corte_cdu_${periodoActual}_${fecha}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  registrarLog('pago', `Excel exportado: ${periodo} · ${lista.length} pagos · $${totalDinero.toLocaleString()}`, null);
+  syncMsg('✅ Excel descargado');
 }
 
 // Show login on load
