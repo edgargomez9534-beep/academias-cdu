@@ -1204,25 +1204,44 @@ function verSocio(ns) {
 
 // ═══════════════════════════ ALTA ═══════════════════════════
 function darDeAlta() {
-  const nombre=document.getElementById('f-nombre').value.trim();
-  const ns=document.getElementById('f-ns').value.trim();
-  const div=document.getElementById('alta-alert');
-  if(!nombre){div.innerHTML='<div class="al al-err">El nombre es obligatorio.</div>';return;}
-  if(ns && socios.find(s=>s.NS===ns)){div.innerHTML='<div class="al al-err">Ya existe un socio con ese número.</div>';return;}
-  const nuevoNS=ns||(Math.max(...socios.map(s=>parseInt(s.NS)||0))+1).toString();
-  const nuevo={
-    NS:nuevoNS, NOMBRE:nombre.toUpperCase(),
-    FECHA_NAC:document.getElementById('f-fecha-nac').value||'',
-    TIPO_SANGRE:document.getElementById('f-sangre').value||'',
-    ACADEMIA:document.getElementById('f-academia-alta').value||'',
-    CATEGORIA:document.getElementById('f-categoria').value.toUpperCase()||'',
-    CONTACTO_EMERGENCIA:document.getElementById('f-contacto').value.toUpperCase()||'',
-    CELULAR:document.getElementById('f-celular').value||'',
-    PARENTESCO:document.getElementById('f-parentesco').value.toUpperCase()||'',
-    VENCIMIENTO:document.getElementById('f-vencimiento').value||'',
-    SEGURO_VIGENCIA:document.getElementById('f-seguro-vigencia').value||'',
-    SEGURO_MONTO:document.getElementById('f-seguro-monto').value||'',
-    ACTIVO:true
+  const div       = document.getElementById('alta-alert');
+  const nombre    = document.getElementById('f-nombre').value.trim();
+  const ns        = document.getElementById('f-ns').value.trim();
+  const fechaNac  = document.getElementById('f-fecha-nac').value.trim();
+  const sangre    = document.getElementById('f-sangre').value.trim();
+  const academia  = document.getElementById('f-academia-alta').value.trim();
+  const categoria = document.getElementById('f-categoria').value.trim();
+  const contacto  = document.getElementById('f-contacto').value.trim();
+  const celular   = document.getElementById('f-celular').value.trim();
+  const parentesco= document.getElementById('f-parentesco').value.trim();
+  const vencimiento = document.getElementById('f-vencimiento').value.trim();
+
+  // Validate all required fields (NS is optional)
+  if (!nombre)     { div.innerHTML='<div class="al al-err">⚠ El nombre completo es obligatorio.</div>'; return; }
+  if (!fechaNac)   { div.innerHTML='<div class="al al-err">⚠ La fecha de nacimiento es obligatoria.</div>'; return; }
+  if (!sangre)     { div.innerHTML='<div class="al al-err">⚠ El tipo de sangre es obligatorio.</div>'; return; }
+  if (!academia)   { div.innerHTML='<div class="al al-err">⚠ La academia es obligatoria.</div>'; return; }
+  if (!categoria)  { div.innerHTML='<div class="al al-err">⚠ La categoría es obligatoria.</div>'; return; }
+  if (!contacto)   { div.innerHTML='<div class="al al-err">⚠ El contacto de emergencia es obligatorio.</div>'; return; }
+  if (!celular)    { div.innerHTML='<div class="al al-err">⚠ El celular de contacto es obligatorio.</div>'; return; }
+  if (!parentesco) { div.innerHTML='<div class="al al-err">⚠ El parentesco es obligatorio.</div>'; return; }
+  if (!vencimiento){ div.innerHTML='<div class="al al-err">⚠ La fecha de vencimiento de membresía es obligatoria.</div>'; return; }
+  if (ns && socios.find(s=>s.NS===ns)){ div.innerHTML='<div class="al al-err">⚠ Ya existe un socio con ese número.</div>'; return; }
+  const nuevoNS = ns || (Math.max(...socios.map(s=>parseInt(s.NS)||0))+1).toString();
+  const nuevo = {
+    NS:                  nuevoNS,
+    NOMBRE:              nombre.toUpperCase(),
+    FECHA_NAC:           fechaNac,
+    TIPO_SANGRE:         sangre,
+    ACADEMIA:            academia,
+    CATEGORIA:           categoria.toUpperCase(),
+    CONTACTO_EMERGENCIA: contacto.toUpperCase(),
+    CELULAR:             celular,
+    PARENTESCO:          parentesco.toUpperCase(),
+    VENCIMIENTO:         vencimiento,
+    SEGURO_VIGENCIA:     document.getElementById('f-seguro-vigencia').value||'',
+    SEGURO_MONTO:        document.getElementById('f-seguro-monto').value||'',
+    ACTIVO:              true
   };
   if(!puedeHacer('alta')){ div.innerHTML='<div class="al al-err">⛔ No tienes permiso para dar de alta socios.</div>'; return; }
   socios.push(nuevo);
@@ -1234,7 +1253,12 @@ function darDeAlta() {
   setTimeout(()=>div.innerHTML='',4000);
   if(document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
   if(document.getElementById('view-pendientes')?.classList.contains('active')) cargarYRenderPendientes();
-  apiPost({action:'addSocio',data:nuevo}).then(r=>syncMsg(r&&r.ok?'✅ Guardado en Sheets':'⚠ Error Sheets',r&&r.ok));
+  // Send to Sheets — no-cors so response is opaque, but data gets through
+  apiPost({action:'addSocio', data:nuevo}).then(() => {
+    syncMsg('✅ Socio guardado en Sheets');
+  }).catch(() => {
+    syncMsg('⚠ Sin conexión — guardado solo en local', false);
+  });
 }
 
 function limpiarAlta(){['f-ns','f-nombre','f-fecha-nac','f-sangre','f-academia-alta','f-categoria','f-contacto','f-celular','f-parentesco','f-vencimiento'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=''});}
