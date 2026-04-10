@@ -853,6 +853,19 @@ function showView(v) {
   if(v==='lockers') renderLockers();
   if(v==='alertas') renderAlertas();
   if(v==='inicio') renderInicio();
+  if(v==='log') {
+    // Refresh log from Sheets when opening
+    apiGet('getLog').then(ld => {
+      if(ld && Array.isArray(ld) && ld.length > 0) {
+        const keys = new Set(ld.map(l => l.usuario+'|'+l.fecha+'|'+l.hora));
+        const local = activityLog.filter(l => !keys.has(l.usuario+'|'+l.fecha+'|'+l.hora));
+        activityLog = [...ld, ...local].slice(0, 500);
+        lsGuardar(LS_LOG, activityLog.slice(0, 200));
+        renderLog();
+      }
+    });
+    renderLog();
+  }
   if(v==='reportes') {
     // Restore tab UI for current period without resetting it
     ['hoy','semana','mes','custom'].forEach(x => {
@@ -1514,27 +1527,36 @@ async function start() {
     let actualizado = false;
 
     if (sd && Array.isArray(sd) && sd.length > 0) {
-      // Merge: Sheets is source of truth for base data
-      // but keep local-only fields like SEGURO if Sheets doesn't have them yet
       socios = sd.map(s => {
         const local = socios.find(x => x.NS === s.NS);
-        return local ? { ...local, ...s } : s; // Sheets overrides, local fills gaps
+        return local ? { ...local, ...s } : s;
       });
       actualizado = true;
     }
     if (pd && Array.isArray(pd) && pd.length > 0) {
-      // Merge pagos: keep local new pagos not yet in Sheets, add Sheets pagos
       const sheetsNS_Fecha = new Set(pd.map(p => p.NS + '|' + (p.FECHA_REGISTRO || p.FECHA_PAGO)));
       const soloLocales = pagos.filter(p => !sheetsNS_Fecha.has(p.NS + '|' + (p.FECHA_REGISTRO || p.FECHA_PAGO)));
       pagos = [...pd, ...soloLocales];
       actualizado = true;
     }
+    // Load shared activity log from Sheets
+    const ld = await apiGet('getLog');
+    if (ld && Array.isArray(ld) && ld.length > 0) {
+      // Merge: Sheets log + local log, deduplicate by timestamp+usuario
+      const sheetsLogKeys = new Set(ld.map(l => l.usuario + '|' + l.fecha + '|' + l.hora));
+      const soloLocalLog = activityLog.filter(l => !sheetsLogKeys.has(l.usuario + '|' + l.fecha + '|' + l.hora));
+      activityLog = [...ld, ...soloLocalLog].slice(0, 500);
+      lsGuardar(LS_LOG, activityLog.slice(0, 200));
+    }
 
     if (actualizado) {
-      guardarTodoLocal(); // update localStorage with fresh Sheets data
+      guardarTodoLocal();
       dataCargada = true;
-      actualizarStats();
+      actualizarStats(); // recalculates pendientes badge with fresh data
       renderInicio();
+      // Refresh active views with fresh data
+      if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
+      if(document.getElementById('view-alertas')?.classList.contains('active')) renderAlertas();
       el.textContent = '● Conectado a Sheets';
       el.style.color = 'var(--green2)';
     }
@@ -1726,6 +1748,11 @@ function registrarLog(tipo, descripcion, ns) {
   // Max 200 entradas in localStorage, 500 in memory
   if (activityLog.length > 500) activityLog.pop();
   lsGuardar(LS_LOG, activityLog.slice(0, 200));
+  // Sync log entry to Sheets so all sessions see all activity
+  const lastEntry = activityLog[0];
+  if (lastEntry && lastEntry.tipo !== 'login') { // skip login entries to avoid spam
+    apiPost({ action: 'addLog', data: lastEntry });
+  }
   // Actualizar badge si hay log view activo
   renderLog();
 }
