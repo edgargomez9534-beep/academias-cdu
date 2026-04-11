@@ -876,11 +876,15 @@ function showView(v) {
     renderReportes(); // render immediately with cached data
     // Then silently refresh data in background
     apiGet('getPagos').then(pd => {
-      if(pd && Array.isArray(pd) && pd.length > 0) { pagos = pd; actualizarStats(); renderReportes(); }
+      if(pd && Array.isArray(pd) && pd.length > 0) {
+        // Only update pagos if Sheets has MORE records (don't overwrite local new ones)
+        if(pd.length >= pagos.length) pagos = pd;
+        actualizarStats();
+        renderReportes();
+      }
     });
   }
   if(v==='pendientes') cargarYRenderPendientes();
-  if(v==='reportes') { renderReportes(); }
   if(v==='pendientes') { renderPendientes(); }
 }
 
@@ -1227,6 +1231,7 @@ function darDeAlta() {
   if (!parentesco) { div.innerHTML='<div class="al al-err">⚠ El parentesco es obligatorio.</div>'; return; }
   if (!vencimiento){ div.innerHTML='<div class="al al-err">⚠ La fecha de vencimiento de membresía es obligatoria.</div>'; return; }
   if (ns && socios.find(s=>s.NS===ns)){ div.innerHTML='<div class="al al-err">⚠ Ya existe un socio con ese número.</div>'; return; }
+  if (socios.find(s=>s.NOMBRE.trim().toUpperCase()===nombre.toUpperCase())){ div.innerHTML='<div class="al al-err">⚠ Ya existe un socio con ese nombre.</div>'; return; }
   const nuevoNS = ns || (Math.max(...socios.map(s=>parseInt(s.NS)||0))+1).toString();
   const nuevo = {
     NS:                  nuevoNS,
@@ -1871,10 +1876,9 @@ function getListaPeriodo() {
     hasta = document.getElementById('rango-hasta')?.value || ahora.toISOString().slice(0,10);
   }
   return pagos.filter(p => {
-    // Try FECHA_REGISTRO first, fall back to FECHA_PAGO
-    const raw = (p.FECHA_REGISTRO && p.FECHA_REGISTRO.length >= 8)
-      ? p.FECHA_REGISTRO
-      : (p.FECHA_PAGO || '');
+    // Use FECHA_PAGO as primary source of truth (always filled)
+    // Fall back to FECHA_REGISTRO for newer payments
+    const raw = p.FECHA_PAGO || p.FECHA_REGISTRO || '';
     const f = normalizarFecha(raw);
     if (!f) return false;
     return f >= desde && f <= hasta;
@@ -2064,7 +2068,7 @@ function guardarSeguro() {
     NS:             s.NS,
     NOMBRE:         s.NOMBRE,
     INSCRIPCION:    '',
-    SEGURO:         parseFloat(monto),
+    SEGURO:         parseFloat(monto).toFixed(2),
     MES:            mesActual,
     MONTO:          0,
     REFERENCIA:     ref || notas || 'Pago de seguro deportivo',
@@ -2122,7 +2126,9 @@ async function cargarYRenderReportes() {
   if(lupd) lupd.textContent = '⏳ Actualizando desde Google Sheets...';
 
   const pd = await apiGet('getPagos');
-  if(pd && Array.isArray(pd) && pd.length > 0) pagos = pd;
+  if(pd && Array.isArray(pd) && pd.length > 0) {
+    if(pd.length >= pagos.length) pagos = pd; // only update if Sheets has same or more
+  }
 
   actualizarStats();
   // Restore the active period tab UI without resetting periodoActual
