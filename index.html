@@ -381,6 +381,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
 
   <div class="nav-section" style="margin-top:8px">Instalaciones</div>
   <div class="nav-item" onclick="showView('lockers')" id="nav-lockers"><span class="ni">🔒</span>Lockers</div>
+  <div class="nav-item" onclick="showView('prueba')" id="nav-prueba"><span class="ni">🎯</span>Clases de Prueba</div>
 
   <div class="nav-section" style="margin-top:8px">Reportes</div>
   <div class="nav-item" onclick="showView('reportes')" id="nav-reportes"><span class="ni">📈</span>Cortes y Reportes</div>
@@ -520,8 +521,9 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
         </div>
         <div class="fg"><label>Academia</label><select class="fs" id="f-academia-alta"><option value="">— Seleccionar —</option></select></div>
         <div class="fg"><label>Categoría</label><input type="text" id="f-categoria" placeholder="Ej. JUVENIL C"></div>
-        <div class="fg"><label>Contacto de Emergencia</label><input type="text" id="f-contacto" placeholder="Nombre completo"></div>
-        <div class="fg"><label>Celular Contacto</label><input type="text" id="f-celular" placeholder="10 dígitos"></div>
+        <div class="fg"><label>Nombre Contacto Emergencia</label><input type="text" id="f-contacto-nombre" placeholder="Nombre(s)"></div>
+        <div class="fg"><label>Apellidos Contacto Emergencia</label><input type="text" id="f-contacto-apellido" placeholder="Apellido Paterno y Materno"></div>
+        <div class="fg"><label>Celular Contacto</label><input type="text" id="f-celular" placeholder="10 dígitos" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
         <div class="fg"><label>Parentesco</label><input type="text" id="f-parentesco" placeholder="Ej. Padre, Madre, Tutor"></div>
         <div class="fg"><label>Fecha Vencimiento Membresía</label><input type="date" id="f-vencimiento"></div>
         <div class="fg"><label>Vigencia Seguro (hasta)</label><input type="date" id="f-seguro-vigencia"></div>
@@ -653,6 +655,25 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
 </div>
 
+
+<!-- ══ VIEW: PRUEBA ══ -->
+<div class="view" id="view-prueba">
+  <div class="page-hdr">
+    <div><h1>Clases de Prueba</h1><p>Registro de visitantes en clase de prueba</p></div>
+    <button class="btn btn-gold" onclick="abrirModalPrueba()">➕ Nueva Clase de Prueba</button>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Fecha</th><th>Nombre</th><th>Academia</th>
+        <th>Documentación</th><th>Pago Clase Prueba</th>
+        <th>Registrado por</th><th>Acciones</th>
+      </tr></thead>
+      <tbody id="tabla-prueba"></tbody>
+    </table>
+  </div>
+</div>
+
 </div><!-- /main-content -->
 </div><!-- /layout -->
 
@@ -689,6 +710,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
             <option value="NO APLICA">Sin descuento (NO APLICA)</option>
             <option value="20% ESTUDIANTE UDG">20% Descuento UDG</option>
             <option value="50% ADULTO MAYOR">50% Adulto Mayor</option>
+            <option value="10% EGRESADOS">10% Egresados</option>
+            <option value="15% PAQUETE FAMILIAR">15% Paquete Familiar</option>
+            <option value="20% PAQUETE FAMILIAR">20% Paquete Familiar</option>
+            <option value="25% PAQUETE FAMILIAR">25% Paquete Familiar</option>
           </select>
         </div>
         <div class="fg"><label>Referencia / Folio</label><input type="text" id="p-ref" placeholder="Número de referencia"></div>
@@ -748,6 +773,32 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
     <div class="md-footer">
       <button class="btn btn-ghost" onclick="cerrarMo('mo-seguro')">Cancelar</button>
       <button class="btn btn-gold" onclick="guardarSeguro()">🛡 Guardar Seguro</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CLASE DE PRUEBA ══ -->
+<div class="mo" id="mo-prueba" style="display:none" onclick="if(event.target===this)cerrarMo('mo-prueba')">
+  <div class="md" style="max-width:500px">
+    <div class="md-hdr"><div class="md-title">🎯 Clase de Prueba</div><button class="md-close" onclick="cerrarMo('mo-prueba')">✕</button></div>
+    <div class="md-body">
+      <div id="prueba-al"></div>
+      <div class="fgrid">
+        <div class="fg"><label>Nombre *</label><input type="text" id="pr-nombre" placeholder="Nombre completo"></div>
+        <div class="fg"><label>Academia *</label><select class="fs" id="pr-academia"><option value="">— Seleccionar —</option></select></div>
+        <div class="fg"><label>Fecha *</label><input type="date" id="pr-fecha"></div>
+        <div class="fg"><label>Monto Clase Prueba ($) *</label><input type="number" id="pr-monto" placeholder="0.00" min="0"></div>
+        <div class="fg full"><label>Documentación Completa</label>
+          <select class="fs" id="pr-docs">
+            <option value="SÍ">✅ Sí — Documentación completa</option>
+            <option value="NO">❌ No — Documentación pendiente</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-prueba')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarPrueba()">✅ Registrar</button>
     </div>
   </div>
 </div>
@@ -881,6 +932,7 @@ function showView(v) {
     });
   }
   if(v==='pendientes') cargarYRenderPendientes();
+  if(v==='prueba') renderPrueba();
   if(v==='pendientes') { renderPendientes(); }
 }
 
@@ -1211,7 +1263,9 @@ function darDeAlta() {
   const sangre    = document.getElementById('f-sangre').value.trim();
   const academia  = document.getElementById('f-academia-alta').value.trim();
   const categoria = document.getElementById('f-categoria').value.trim();
-  const contacto  = document.getElementById('f-contacto').value.trim();
+  const contactoNombreV   = document.getElementById('f-contacto-nombre')?.value.trim()||'';
+  const contactoApellidoV = document.getElementById('f-contacto-apellido')?.value.trim()||'';
+  const contacto = contactoNombreV + ' ' + contactoApellidoV;
   const celular   = document.getElementById('f-celular').value.trim();
   const parentesco= document.getElementById('f-parentesco').value.trim();
   const vencimiento = document.getElementById('f-vencimiento').value.trim();
@@ -1222,8 +1276,12 @@ function darDeAlta() {
   if (!sangre)     { div.innerHTML='<div class="al al-err">⚠ El tipo de sangre es obligatorio.</div>'; return; }
   if (!academia)   { div.innerHTML='<div class="al al-err">⚠ La academia es obligatoria.</div>'; return; }
   if (!categoria)  { div.innerHTML='<div class="al al-err">⚠ La categoría es obligatoria.</div>'; return; }
-  if (!contacto)   { div.innerHTML='<div class="al al-err">⚠ El contacto de emergencia es obligatorio.</div>'; return; }
-  if (!celular)    { div.innerHTML='<div class="al al-err">⚠ El celular de contacto es obligatorio.</div>'; return; }
+  const contactoNombre   = document.getElementById('f-contacto-nombre').value.trim();
+  const contactoApellido = document.getElementById('f-contacto-apellido').value.trim();
+  if (!contactoNombre)   { div.innerHTML='<div class="al al-err">⚠ El nombre del contacto de emergencia es obligatorio.</div>'; return; }
+  if (!contactoApellido) { div.innerHTML='<div class="al al-err">⚠ Los apellidos del contacto de emergencia son obligatorios.</div>'; return; }
+  if (!celular)           { div.innerHTML='<div class="al al-err">⚠ El celular de contacto es obligatorio.</div>'; return; }
+  if (celular.length !== 10) { div.innerHTML='<div class="al al-err">⚠ El celular debe tener exactamente 10 dígitos.</div>'; return; }
   if (!parentesco) { div.innerHTML='<div class="al al-err">⚠ El parentesco es obligatorio.</div>'; return; }
   if (!vencimiento){ div.innerHTML='<div class="al al-err">⚠ La fecha de vencimiento de membresía es obligatoria.</div>'; return; }
   if (ns && socios.find(s=>s.NS===ns)){ div.innerHTML='<div class="al al-err">⚠ Ya existe un socio con ese número.</div>'; return; }
@@ -1308,6 +1366,16 @@ function abrirModalPago(ns) {
   else { document.getElementById('p-nombre').value=''; document.getElementById('p-academia').value=''; document.getElementById('p-cat').value=''; }
   const mesAct=MESES[new Date().getMonth()];
   [...document.getElementById('p-mes').options].forEach(o=>o.selected=o.value===mesAct);
+  // Add 50% admin-only option
+  const dsel = document.getElementById('p-descuento');
+  const opt50 = dsel.querySelector('option[value="50% PERMISO ADMIN"]');
+  if (sesionActual?.rol === 'admin' && !opt50) {
+    const o = document.createElement('option');
+    o.value = '50% PERMISO ADMIN'; o.text = '50% Permiso (Solo Admin)';
+    dsel.appendChild(o);
+  } else if (sesionActual?.rol !== 'admin' && opt50) {
+    dsel.removeChild(opt50);
+  }
   document.getElementById('mo-pago').style.display='flex';
 }
 
@@ -1733,8 +1801,8 @@ const USUARIOS = [
 
 // Permisos por rol
 const PERMISOS = {
-  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','reportes','pendientes','log'],
-  recepcionista: ['inicio','alertas','buscar','socios','pagos','alta','lockers'],
+  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','reportes','pendientes','log'],
+  recepcionista: ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba'],
   supervisor:    ['inicio','alertas','buscar','socios','pagos','reportes','pendientes','log']
 };
 
@@ -1795,7 +1863,7 @@ function aplicarPermisos() {
   const vistas = PERMISOS[sesionActual.rol] || [];
 
   // Mostrar/ocultar nav items
-  ['inicio','alertas','buscar','socios','pagos','alta','lockers','reportes','pendientes','log'].forEach(v => {
+  ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','reportes','pendientes','log'].forEach(v => {
     const el = document.getElementById('nav-'+v);
     if (el) el.style.display = vistas.includes(v) ? '' : 'none';
   });
@@ -2299,6 +2367,70 @@ function exportarExcelCorte() {
 
   registrarLog('pago', `Excel exportado: ${periodo} · ${lista.length} pagos · $${totalDinero.toLocaleString()}`, null);
   syncMsg('✅ Excel descargado');
+}
+
+// ═══════════════════════════ CLASES DE PRUEBA ═══════════════════════════
+let clasesPrueba = JSON.parse(localStorage.getItem('cdu_prueba_v1') || '[]');
+
+function renderPrueba() {
+  const tbody = document.getElementById('tabla-prueba');
+  if (!tbody) return;
+  if (!clasesPrueba.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ei">🎯</div><p>Sin clases de prueba registradas</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = [...clasesPrueba].reverse().map((c, i) => `<tr>
+    <td style="color:var(--text3)">${c.FECHA||'—'}</td>
+    <td class="mc">${c.NOMBRE}</td>
+    <td><span class="badge b-gold">${c.ACADEMIA||'—'}</span></td>
+    <td><span class="badge ${c.DOCS==='SÍ'?'b-active':'b-baja'}">${c.DOCS==='SÍ'?'✅ Completa':'❌ Pendiente'}</span></td>
+    <td style="color:var(--green2);font-weight:600">$${parseFloat(c.MONTO||0).toLocaleString('es-MX')}</td>
+    <td style="color:var(--text3);font-size:12px">${c.REGISTRADO_POR||'—'}</td>
+    <td><button class="btn btn-red btn-sm" onclick="eliminarPrueba(${clasesPrueba.length-1-i})">🗑</button></td>
+  </tr>`).join('');
+}
+
+function abrirModalPrueba() {
+  document.getElementById('prueba-al').innerHTML = '';
+  document.getElementById('pr-nombre').value = '';
+  document.getElementById('pr-monto').value = '';
+  document.getElementById('pr-fecha').value = hoy();
+  document.getElementById('pr-docs').value = 'SÍ';
+  // Populate academias
+  const sel = document.getElementById('pr-academia');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' + getAcademias().map(a=>`<option>${a}</option>`).join('');
+  document.getElementById('mo-prueba').style.display = 'flex';
+}
+
+function guardarPrueba() {
+  const div     = document.getElementById('prueba-al');
+  const nombre  = document.getElementById('pr-nombre').value.trim();
+  const academia= document.getElementById('pr-academia').value.trim();
+  const monto   = document.getElementById('pr-monto').value.trim();
+  const fecha   = document.getElementById('pr-fecha').value;
+  if (!nombre)  { div.innerHTML='<div class="al al-err">⚠ El nombre es obligatorio.</div>'; return; }
+  if (!academia){ div.innerHTML='<div class="al al-err">⚠ La academia es obligatoria.</div>'; return; }
+  if (!monto)   { div.innerHTML='<div class="al al-err">⚠ El monto es obligatorio.</div>'; return; }
+  const nueva = {
+    NOMBRE: nombre.toUpperCase(), ACADEMIA: academia,
+    FECHA: fecha, MONTO: parseFloat(monto),
+    DOCS: document.getElementById('pr-docs').value,
+    REGISTRADO_POR: sesionActual?.nombre || '—',
+    HORA: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})
+  };
+  clasesPrueba.push(nueva);
+  localStorage.setItem('cdu_prueba_v1', JSON.stringify(clasesPrueba));
+  registrarLog('pago', `Clase de prueba: ${nueva.NOMBRE} · ${nueva.ACADEMIA}`, null);
+  cerrarMo('mo-prueba');
+  renderPrueba();
+  syncMsg('✅ Clase de prueba registrada');
+}
+
+function eliminarPrueba(idx) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  clasesPrueba.splice(idx, 1);
+  localStorage.setItem('cdu_prueba_v1', JSON.stringify(clasesPrueba));
+  renderPrueba();
 }
 
 // Show login on load
