@@ -382,6 +382,7 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   <div class="nav-section" style="margin-top:8px">Instalaciones</div>
   <div class="nav-item" onclick="showView('lockers')" id="nav-lockers"><span class="ni">🔒</span>Lockers</div>
   <div class="nav-item" onclick="showView('prueba')" id="nav-prueba"><span class="ni">🎯</span>Clases de Prueba</div>
+  <div class="nav-item" onclick="showView('cupos')" id="nav-cupos"><span class="ni">🏅</span>Cupos por Academia</div>
 
   <div class="nav-section" style="margin-top:8px">Reportes</div>
   <div class="nav-item" onclick="showView('reportes')" id="nav-reportes"><span class="ni">📈</span>Cortes y Reportes</div>
@@ -660,7 +661,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
 <div class="view" id="view-prueba">
   <div class="page-hdr">
     <div><h1>Clases de Prueba</h1><p>Registro de visitantes en clase de prueba</p></div>
-    <button class="btn btn-gold" onclick="abrirModalPrueba()">➕ Nueva Clase de Prueba</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="exportarPrueba()">⬇ Exportar Excel</button>
+      <button class="btn btn-gold" onclick="abrirModalPrueba()">➕ Nueva Clase de Prueba</button>
+    </div>
   </div>
   <div class="tbl-wrap">
     <table>
@@ -670,6 +674,27 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
         <th>Registrado por</th><th>Acciones</th>
       </tr></thead>
       <tbody id="tabla-prueba"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<!-- ══ VIEW: CUPOS ══ -->
+<div class="view" id="view-cupos">
+  <div class="page-hdr">
+    <div><h1>Cupos por Academia</h1><p id="cupos-lbl">Disponibilidad de lugares por disciplina</p></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Academia</th>
+        <th>Cupo Máximo</th>
+        <th>Inscritos</th>
+        <th>Disponibles</th>
+        <th>Ocupación</th>
+        <th id="cupos-col-accion" style="display:none">Acciones</th>
+      </tr></thead>
+      <tbody id="tabla-cupos"></tbody>
     </table>
   </div>
 </div>
@@ -695,6 +720,14 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
       <div class="fgrid">
         <div class="fg"><label>N° Socio *</label><input type="text" id="p-ns" placeholder="Número de socio" oninput="autoFillPago()"></div>
         <div class="fg"><label>Nombre</label><input type="text" id="p-nombre" readonly></div>
+        <div class="fg"><label>Tipo de Pago *</label>
+          <select class="fs" id="p-tipo" onchange="actualizarCamposPago()">
+            <option value="mensualidad">💳 Mensualidad</option>
+            <option value="seguro">🛡 Seguro Deportivo</option>
+            <option value="uniforme">👕 Uniforme</option>
+            <option value="inscripcion">📋 Inscripción</option>
+          </select>
+        </div>
         <div class="fg"><label>Mes que Cubre</label>
           <select class="fs" id="p-mes">
             <option>ENERO</option><option>FEBRERO</option><option>MARZO</option><option>ABRIL</option>
@@ -703,8 +736,6 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
           </select>
         </div>
         <div class="fg"><label>Monto ($) *</label><input type="number" id="p-monto" placeholder="0.00" min="0"></div>
-        <div class="fg"><label>Inscripción ($)</label><input type="number" id="p-inscripcion" placeholder="0" min="0"></div>
-        <div class="fg"><label>Seguro ($)</label><input type="number" id="p-seguro" placeholder="0" min="0"></div>
         <div class="fg"><label>Descuento</label>
           <select class="fs" id="p-descuento">
             <option value="NO APLICA">Sin descuento (NO APLICA)</option>
@@ -727,6 +758,53 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
       <button class="btn btn-ghost" onclick="cerrarMo('mo-pago')">Cancelar</button>
       <button class="btn btn-blue" onclick="guardarPago()">🖨 Guardar y generar recibo</button>
       <button class="btn btn-gold" onclick="guardarPago(false)">💳 Solo guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: NUEVA DISCIPLINA ══ -->
+<div class="mo" id="mo-disciplina" style="display:none" onclick="if(event.target===this)cerrarMo('mo-disciplina')">
+  <div class="md" style="max-width:480px">
+    <div class="md-hdr"><div class="md-title" style="color:var(--blue2)">🏅 Agregar Disciplina</div><button class="md-close" onclick="cerrarMo('mo-disciplina')">✕</button></div>
+    <div class="md-body">
+      <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Socio: <strong id="disc-nombre" style="color:var(--gold2)"></strong></p>
+      <div class="fgrid">
+        <div class="fg"><label>Nueva Academia *</label><select class="fs" id="disc-academia"><option value="">— Seleccionar —</option></select></div>
+        <div class="fg"><label>Categoría *</label><input type="text" id="disc-categoria" placeholder="Ej. JUVENIL A"></div>
+        <div class="fg"><label>Fecha Vencimiento</label><input type="date" id="disc-vencimiento"></div>
+        <div class="fg"><label>Monto Inscripción ($)</label><input type="number" id="disc-monto" placeholder="0.00" min="0"></div>
+        <div class="fg"><label>Referencia / Folio *</label><input type="text" id="disc-ref" placeholder="Número de referencia"></div>
+      </div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-disciplina')">Cancelar</button>
+      <button class="btn btn-blue" onclick="guardarDisciplina()">🏅 Agregar Disciplina</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CATEGORÍA ══ -->
+<div class="mo" id="mo-categoria" style="display:none" onclick="if(event.target===this)cerrarMo('mo-categoria')">
+  <div class="md" style="max-width:440px">
+    <div class="md-hdr"><div class="md-title" style="color:var(--orange)">✏️ Cambiar Categoría</div><button class="md-close" onclick="cerrarMo('mo-categoria')">✕</button></div>
+    <div class="md-body">
+      <p style="color:var(--text2);font-size:14px;margin-bottom:14px">Socio: <strong id="cat-nombre" style="color:var(--gold2)"></strong></p>
+      <div class="fg" style="margin-bottom:14px">
+        <label>Academia Actual</label>
+        <input type="text" id="cat-academia-actual" readonly style="opacity:.6">
+      </div>
+      <div class="fg" style="margin-bottom:14px">
+        <label>Categoría Actual</label>
+        <input type="text" id="cat-actual" readonly style="opacity:.6">
+      </div>
+      <div class="fg">
+        <label>Nueva Categoría *</label>
+        <input type="text" id="cat-nueva" placeholder="Ej. JUVENIL A, INTERMEDIOS B...">
+      </div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-categoria')">Cancelar</button>
+      <button class="btn btn-orange" onclick="guardarCategoria()">✏️ Guardar Cambio</button>
     </div>
   </div>
 </div>
@@ -799,6 +877,24 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
     <div class="md-footer">
       <button class="btn btn-ghost" onclick="cerrarMo('mo-prueba')">Cancelar</button>
       <button class="btn btn-gold" onclick="guardarPrueba()">✅ Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: CUPOS ══ -->
+<div class="mo" id="mo-cupos" style="display:none" onclick="if(event.target===this)cerrarMo('mo-cupos')">
+  <div class="md" style="max-width:400px">
+    <div class="md-hdr"><div class="md-title">✏️ Editar Cupos</div><button class="md-close" onclick="cerrarMo('mo-cupos')">✕</button></div>
+    <div class="md-body">
+      <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Academia: <strong id="cupos-academia-lbl" style="color:var(--gold2)"></strong></p>
+      <div class="fg">
+        <label>Cupo Máximo</label>
+        <input type="number" id="cupos-max" placeholder="Número de lugares" min="1">
+      </div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-cupos')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarCupos()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1247,6 +1343,8 @@ function verSocio(ns) {
     <button class="btn btn-ghost" onclick="cerrarMo('mo-socio')">Cerrar</button>
     <button class="btn btn-blue" onclick="cerrarMo('mo-socio');imprimirFicha('${s.NS}')">🖨 Imprimir Ficha</button>
     <button class="btn btn-gold" onclick="cerrarMo('mo-socio');abrirModalPago('${s.NS}')">💳 Registrar Pago</button>
+    ${sesionActual?.rol==='admin'?`<button class="btn btn-orange" onclick="cerrarMo('mo-socio');abrirModalCategoria('${s.NS}')">✏️ Cambiar Categoría</button>`:''}
+    ${['admin','recepcionista'].includes(sesionActual?.rol)?`<button class="btn btn-ghost" onclick="cerrarMo('mo-socio');abrirModalDisciplina('${s.NS}')">🏅 Agregar Disciplina</button>`:''}
     ${s.ACTIVO===false
       ?`<button class="btn btn-green" onclick="cerrarMo('mo-socio');reactivar('${s.NS}')">✅ Reactivar</button>`
       :`<button class="btn btn-red" onclick="cerrarMo('mo-socio');pedirBaja('${s.NS}')">❌ Baja</button>`}`;
@@ -1305,6 +1403,7 @@ function darDeAlta() {
   if(!puedeHacer('alta')){ div.innerHTML='<div class="al al-err">⛔ No tienes permiso para dar de alta socios.</div>'; return; }
   socios.push(nuevo);
   guardarTodoLocal(); // persist to localStorage immediately
+  if(document.getElementById('view-cupos')?.classList.contains('active')) renderCupos();
   actualizarStats();
   registrarLog('alta', `Alta de socio: ${nuevo.NOMBRE}`, nuevoNS);
   div.innerHTML=`<div class="al al-ok">✅ Socio <strong>${nuevo.NOMBRE}</strong> registrado como #${nuevoNS}</div>`;
@@ -1356,8 +1455,7 @@ function abrirModalPago(ns) {
   document.getElementById('pago-al').innerHTML='';
   document.getElementById('p-ns').value=ns||'';
   document.getElementById('p-monto').value='';
-  document.getElementById('p-inscripcion').value='';
-  document.getElementById('p-seguro').value='';
+  document.getElementById('p-tipo').value='mensualidad';
   const _dsel=document.getElementById('p-descuento'); if(_dsel) _dsel.value='NO APLICA';
   document.getElementById('p-ref').value='';
   document.getElementById('p-fecha').value=hoy();
@@ -1377,6 +1475,16 @@ function abrirModalPago(ns) {
     dsel.removeChild(opt50);
   }
   document.getElementById('mo-pago').style.display='flex';
+}
+
+function actualizarCamposPago() {
+  const tipo = document.getElementById('p-tipo')?.value || 'mensualidad';
+  const vencLabel = document.querySelector('label[for="p-vencimiento"]') ||
+    [...document.querySelectorAll('label')].find(l => l.textContent.includes('Actualizar Vencimiento'));
+  if (vencLabel) {
+    if (tipo === 'seguro') vencLabel.textContent = 'Vigencia Seguro (hasta)';
+    else vencLabel.textContent = 'Actualizar Vencimiento hasta';
+  }
 }
 
 function autoFillPago(){
@@ -1404,26 +1512,35 @@ function guardarPago(imprimir=true) {
   if (!monto) { div.innerHTML='<div class="al al-err">⚠ El monto es obligatorio.</div>'; return; }
   if (!ref)   { div.innerHTML='<div class="al al-err">⚠ El número de referencia es obligatorio.</div>'; return; }
   const s=socios.find(x=>x.NS===ns);
+  const tipo = document.getElementById('p-tipo').value;
   const nuevo={
     NS:ns, NOMBRE:s?s.NOMBRE:document.getElementById('p-nombre').value,
-    INSCRIPCION:document.getElementById('p-inscripcion').value||'',
-    SEGURO:document.getElementById('p-seguro').value||'',
+    INSCRIPCION: tipo==='inscripcion' ? parseFloat(monto) : '',
+    SEGURO:      tipo==='seguro'      ? parseFloat(monto).toFixed(2) : '',
     MES:document.getElementById('p-mes').value,
-    MONTO:parseFloat(monto),
+    MONTO:       (tipo==='mensualidad'||tipo==='uniforme') ? parseFloat(monto) : 0,
     REFERENCIA:ref,
     FECHA_PAGO:document.getElementById('p-fecha').value,
     DESCUENTO:document.getElementById('p-descuento').value||'NO APLICA',
     ACADEMIA:s?s.ACADEMIA:'',
     CATEGORIA:s?s.CATEGORIA:'',
+    TIPO_PAGO: tipo.toUpperCase(),
     REGISTRADO_POR: sesionActual ? sesionActual.nombre : '—',
     ROL_REGISTRO: sesionActual ? sesionActual.rol : '—',
     FECHA_REGISTRO: new Date().toISOString().slice(0,10),
     HORA_REGISTRO: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'})
   };
+  // If seguro type, also update SEGURO_VIGENCIA on socio
+  if (tipo === 'seguro' && s) {
+    s.SEGURO_VIGENCIA = document.getElementById('p-vencimiento').value || s.SEGURO_VIGENCIA;
+    s.SEGURO_MONTO    = monto;
+    guardarTodoLocal();
+    apiPost({action:'updateSocio', data:{NS:s.NS, ACTIVO:s.ACTIVO, SEGURO_VIGENCIA:s.SEGURO_VIGENCIA, SEGURO_MONTO:monto}});
+  }
   const venc=document.getElementById('p-vencimiento').value;
   if(venc && s){
     s.VENCIMIENTO=venc;
-    // Sync vencimiento to Sheets so it persists across sessions
+    guardarTodoLocal(); // persist updated vencimiento
     apiPost({action:'updateSocio', data:{NS:s.NS, ACTIVO:s.ACTIVO, VENCIMIENTO:venc}});
   }
   pagos.push(nuevo);
@@ -1735,6 +1852,8 @@ async function start() {
       // Refresh active views with fresh data
       if(document.getElementById('view-pendientes')?.classList.contains('active')) renderPendientes();
       if(document.getElementById('view-alertas')?.classList.contains('active')) renderAlertas();
+      // Always recalculate alerts badge after fresh data load
+      actualizarStats();
       el.textContent = '● Conectado a Sheets';
       el.style.color = 'var(--green2)';
     }
@@ -1801,8 +1920,8 @@ const USUARIOS = [
 
 // Permisos por rol
 const PERMISOS = {
-  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','reportes','pendientes','log'],
-  recepcionista: ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba'],
+  admin:         ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','cupos','reportes','pendientes','log'],
+  recepcionista: ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','cupos'],
   supervisor:    ['inicio','alertas','buscar','socios','pagos','reportes','pendientes','log']
 };
 
@@ -1863,7 +1982,7 @@ function aplicarPermisos() {
   const vistas = PERMISOS[sesionActual.rol] || [];
 
   // Mostrar/ocultar nav items
-  ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','reportes','pendientes','log'].forEach(v => {
+  ['inicio','alertas','buscar','socios','pagos','alta','lockers','prueba','cupos','reportes','pendientes','log'].forEach(v => {
     const el = document.getElementById('nav-'+v);
     if (el) el.style.display = vistas.includes(v) ? '' : 'none';
   });
@@ -2369,6 +2488,91 @@ function exportarExcelCorte() {
   syncMsg('✅ Excel descargado');
 }
 
+// ═══════════════════════════ AGREGAR DISCIPLINA ═══════════════════════════
+let disciplinaNS = null;
+
+function abrirModalDisciplina(ns) {
+  disciplinaNS = ns;
+  const s = socios.find(x => x.NS === ns.toString());
+  if (!s) return;
+  document.getElementById('disc-nombre').textContent = `#${s.NS} — ${s.NOMBRE}`;
+  document.getElementById('disc-categoria').value = '';
+  document.getElementById('disc-monto').value = '';
+  document.getElementById('disc-ref').value = '';
+  document.getElementById('disc-vencimiento').value = '';
+  const sel = document.getElementById('disc-academia');
+  sel.innerHTML = '<option value="">— Seleccionar —</option>' + getAcademias().map(a=>`<option value="${a}">${a}</option>`).join('');
+  document.getElementById('mo-disciplina').style.display = 'flex';
+}
+
+function guardarDisciplina() {
+  const academia  = document.getElementById('disc-academia').value.trim();
+  const categoria = document.getElementById('disc-categoria').value.trim().toUpperCase();
+  const ref       = document.getElementById('disc-ref').value.trim();
+  const monto     = document.getElementById('disc-monto').value || '0';
+  const venc      = document.getElementById('disc-vencimiento').value;
+  if (!academia)  { alert('⚠ Selecciona la academia.'); return; }
+  if (!categoria) { alert('⚠ Ingresa la categoría.'); return; }
+  if (!ref)       { alert('⚠ El número de referencia es obligatorio.'); return; }
+
+  const s = socios.find(x => x.NS === disciplinaNS.toString());
+  if (!s) return;
+
+  // Register as a payment entry (inscripcion)
+  const mesActual = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][new Date().getMonth()];
+  const pagDisc = {
+    NS: s.NS, NOMBRE: s.NOMBRE,
+    INSCRIPCION: parseFloat(monto), SEGURO: '', MES: mesActual,
+    MONTO: 0, REFERENCIA: ref,
+    FECHA_PAGO: hoy(), DESCUENTO: 'NO APLICA',
+    ACADEMIA: academia, CATEGORIA: categoria,
+    REGISTRADO_POR: sesionActual?.nombre||'—', ROL_REGISTRO: sesionActual?.rol||'',
+    FECHA_REGISTRO: new Date().toISOString().slice(0,10),
+    HORA_REGISTRO: new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),
+    TIPO_PAGO: 'INSCRIPCION DISCIPLINA ADICIONAL'
+  };
+  pagos.push(pagDisc);
+  guardarTodoLocal();
+  actualizarStats();
+  apiPost({action:'addPago', data:pagDisc});
+  registrarLog('alta', `Nueva disciplina: ${s.NOMBRE} → ${academia} · ${categoria}`, s.NS);
+  cerrarMo('mo-disciplina');
+  renderPagos();
+  syncMsg('✅ Disciplina agregada y pago registrado');
+}
+
+// ═══════════════════════════ CAMBIO DE CATEGORÍA ═══════════════════════════
+let categoriaNS = null;
+
+function abrirModalCategoria(ns) {
+  if (sesionActual?.rol !== 'admin') { alert('⛔ Solo el administrador puede cambiar categorías.'); return; }
+  categoriaNS = ns;
+  const s = socios.find(x => x.NS === ns.toString());
+  if (!s) return;
+  document.getElementById('cat-nombre').textContent = `#${s.NS} — ${s.NOMBRE}`;
+  document.getElementById('cat-academia-actual').value = s.ACADEMIA || '';
+  document.getElementById('cat-actual').value = s.CATEGORIA || '';
+  document.getElementById('cat-nueva').value = '';
+  document.getElementById('mo-categoria').style.display = 'flex';
+}
+
+function guardarCategoria() {
+  const nueva = document.getElementById('cat-nueva').value.trim().toUpperCase();
+  if (!nueva) { alert('⚠ Ingresa la nueva categoría.'); return; }
+  const s = socios.find(x => x.NS === categoriaNS.toString());
+  if (!s) return;
+  const anterior = s.CATEGORIA;
+  s.CATEGORIA = nueva;
+  guardarTodoLocal();
+  actualizarStats();
+  if (document.getElementById('view-socios')?.classList.contains('active')) renderSocios();
+  registrarLog('alta', `Cambio de categoría: ${s.NOMBRE} · ${anterior} → ${nueva}`, s.NS);
+  apiPost({ action: 'updateSocio', data: { NS: s.NS, ACTIVO: s.ACTIVO, CATEGORIA: nueva } });
+  cerrarMo('mo-categoria');
+  syncMsg('✅ Categoría actualizada');
+  setTimeout(() => verSocio(categoriaNS), 200);
+}
+
 // ═══════════════════════════ CLASES DE PRUEBA ═══════════════════════════
 let clasesPrueba = JSON.parse(localStorage.getItem('cdu_prueba_v1') || '[]');
 
@@ -2421,9 +2625,30 @@ function guardarPrueba() {
   clasesPrueba.push(nueva);
   localStorage.setItem('cdu_prueba_v1', JSON.stringify(clasesPrueba));
   registrarLog('pago', `Clase de prueba: ${nueva.NOMBRE} · ${nueva.ACADEMIA}`, null);
+  // Sync to Sheets
+  apiPost({ action: 'addPago', data: {
+    NS: 'PRUEBA', NOMBRE: nueva.NOMBRE, MES: nueva.FECHA,
+    MONTO: nueva.MONTO, REFERENCIA: `CLASE PRUEBA · DOCS: ${nueva.DOCS}`,
+    FECHA_PAGO: nueva.FECHA, DESCUENTO: 'CLASE DE PRUEBA',
+    ACADEMIA: nueva.ACADEMIA, CATEGORIA: 'CLASE DE PRUEBA',
+    REGISTRADO_POR: nueva.REGISTRADO_POR, ROL_REGISTRO: sesionActual?.rol||'',
+    FECHA_REGISTRO: nueva.FECHA, HORA_REGISTRO: nueva.HORA
+  }});
   cerrarMo('mo-prueba');
   renderPrueba();
   syncMsg('✅ Clase de prueba registrada');
+}
+
+function exportarPrueba() {
+  if (!clasesPrueba.length) { alert('No hay clases de prueba registradas.'); return; }
+  const hdrs = ['FECHA','NOMBRE','ACADEMIA','DOCUMENTACION','MONTO','REGISTRADO_POR','HORA'];
+  const rows = clasesPrueba.map(c => hdrs.map(h => `"${String(c[h]||'').replace(/"/g,'""')}"`).join(','));
+  const csv  = [hdrs.join(','), ...rows].join('
+');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
+  a.download = `clases_prueba_${hoy()}.csv`; a.click();
+  syncMsg('✅ Excel descargado');
 }
 
 function eliminarPrueba(idx) {
@@ -2431,6 +2656,76 @@ function eliminarPrueba(idx) {
   clasesPrueba.splice(idx, 1);
   localStorage.setItem('cdu_prueba_v1', JSON.stringify(clasesPrueba));
   renderPrueba();
+}
+
+// ═══════════════════════════ CUPOS ═══════════════════════════
+let cuposData = JSON.parse(localStorage.getItem('cdu_cupos_v1') || '{}');
+let cuposEditAcad = null;
+
+function renderCupos() {
+  // Show/hide accion column based on role
+  const col = document.getElementById('cupos-col-accion');
+  if (col) col.style.display = sesionActual?.rol === 'admin' ? '' : 'none';
+
+  // Count inscritos per academia from socios
+  const counts = {};
+  socios.filter(s => s.ACTIVO !== false).forEach(s => {
+    const a = s.ACADEMIA?.trim() || 'Sin academia';
+    counts[a] = (counts[a] || 0) + 1;
+  });
+
+  const academias = [...new Set([...Object.keys(counts), ...Object.keys(cuposData)])].sort();
+  const tbody = document.getElementById('tabla-cupos');
+  if (!tbody) return;
+
+  tbody.innerHTML = academias.map(a => {
+    const inscritos  = counts[a] || 0;
+    const maximo     = cuposData[a] || 0;
+    const disponibles = maximo > 0 ? Math.max(0, maximo - inscritos) : '—';
+    const pct         = maximo > 0 ? Math.round(inscritos / maximo * 100) : 0;
+    const color       = pct >= 100 ? 'var(--red2)' : pct >= 80 ? 'var(--orange)' : 'var(--green2)';
+    const barW        = maximo > 0 ? Math.min(100, pct) : 0;
+    const dispColor   = typeof disponibles === 'number' && disponibles === 0 ? 'var(--red2)' : typeof disponibles === 'number' && disponibles <= 5 ? 'var(--orange)' : 'var(--green2)';
+
+    return `<tr>
+      <td class="mc">${a}</td>
+      <td style="text-align:center">${maximo > 0 ? maximo : '<span style="color:var(--text3)">Sin límite</span>'}</td>
+      <td style="text-align:center;font-weight:600">${inscritos}</td>
+      <td style="text-align:center;font-weight:700;color:${dispColor}">${disponibles}</td>
+      <td style="min-width:140px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+            <div style="width:${barW}%;height:100%;background:${color};border-radius:4px;transition:width .3s"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);min-width:32px">${maximo > 0 ? pct+'%' : '—'}</span>
+        </div>
+      </td>
+      ${sesionActual?.rol === 'admin' ? `<td><button class="btn btn-ghost btn-sm" onclick="abrirModalCupos('${a}')">✏️ Editar</button></td>` : '<td></td>'}
+    </tr>`;
+  }).join('');
+
+  const total = academias.length;
+  const sinLimite = academias.filter(a => !cuposData[a]).length;
+  document.getElementById('cupos-lbl').textContent = `${total} academias · ${sinLimite} sin límite configurado`;
+}
+
+function abrirModalCupos(academia) {
+  if (sesionActual?.rol !== 'admin') return;
+  cuposEditAcad = academia;
+  document.getElementById('cupos-academia-lbl').textContent = academia;
+  document.getElementById('cupos-max').value = cuposData[academia] || '';
+  document.getElementById('mo-cupos').style.display = 'flex';
+}
+
+function guardarCupos() {
+  const max = parseInt(document.getElementById('cupos-max').value);
+  if (!max || max < 1) { alert('⚠ Ingresa un número válido mayor a 0.'); return; }
+  cuposData[cuposEditAcad] = max;
+  localStorage.setItem('cdu_cupos_v1', JSON.stringify(cuposData));
+  registrarLog('alta', `Cupos actualizados: ${cuposEditAcad} → ${max} lugares`, null);
+  cerrarMo('mo-cupos');
+  renderCupos();
+  syncMsg('✅ Cupos actualizados');
 }
 
 // Show login on load
