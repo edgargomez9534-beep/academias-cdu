@@ -699,6 +699,23 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
 </div>
 
+
+<!-- ══ VIEW: CUPOS ══ -->
+<div class="view" id="view-cupos">
+  <div class="page-hdr">
+    <div><h1>Cupos por Academia</h1><p id="cupos-lbl">Disponibilidad de lugares por disciplina</p></div>
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr>
+        <th>Academia</th><th>Cupo Máximo</th><th>Inscritos</th>
+        <th>Disponibles</th><th>Ocupación</th>
+        <th id="cupos-col-accion" style="display:none">Acciones</th>
+      </tr></thead>
+      <tbody id="tabla-cupos"></tbody>
+    </table>
+  </div>
+</div>
 </div><!-- /main-content -->
 </div><!-- /layout -->
 
@@ -899,6 +916,20 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   </div>
 </div>
 
+<!-- ══ MODAL: CUPOS ══ -->
+<div class="mo" id="mo-cupos" style="display:none" onclick="if(event.target===this)cerrarMo('mo-cupos')">
+  <div class="md" style="max-width:400px">
+    <div class="md-hdr"><div class="md-title">✏️ Editar Cupos</div><button class="md-close" onclick="cerrarMo('mo-cupos')">✕</button></div>
+    <div class="md-body">
+      <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Academia: <strong id="cupos-academia-lbl" style="color:var(--gold2)"></strong></p>
+      <div class="fg"><label>Cupo Máximo</label><input type="number" id="cupos-max" placeholder="Número de lugares" min="1"></div>
+    </div>
+    <div class="md-footer">
+      <button class="btn btn-ghost" onclick="cerrarMo('mo-cupos')">Cancelar</button>
+      <button class="btn btn-gold" onclick="guardarCupos()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
 <!-- ══ RECIBO PRINT ══ -->
 <div id="recibo-print"></div>
 
@@ -1402,7 +1433,8 @@ function darDeAlta() {
   };
   if(!puedeHacer('alta')){ div.innerHTML='<div class="al al-err">⛔ No tienes permiso para dar de alta socios.</div>'; return; }
   socios.push(nuevo);
-  guardarTodoLocal(); // persist to localStorage immediately
+  guardarTodoLocal();
+  if(document.getElementById('view-cupos')?.classList.contains('active')) renderCupos();
   if(document.getElementById('view-cupos')?.classList.contains('active')) renderCupos();
   actualizarStats();
   registrarLog('alta', `Alta de socio: ${nuevo.NOMBRE}`, nuevoNS);
@@ -2723,6 +2755,68 @@ function guardarCupos() {
   cuposData[cuposEditAcad] = max;
   localStorage.setItem('cdu_cupos_v1', JSON.stringify(cuposData));
   registrarLog('alta', `Cupos actualizados: ${cuposEditAcad} → ${max} lugares`, null);
+  cerrarMo('mo-cupos');
+  renderCupos();
+  syncMsg('✅ Cupos actualizados');
+}
+
+// ═══════════════════════════ CUPOS ═══════════════════════════
+let cuposData = JSON.parse(localStorage.getItem('cdu_cupos_v1') || '{}');
+let cuposEditAcad = null;
+
+function renderCupos() {
+  const col = document.getElementById('cupos-col-accion');
+  if (col) col.style.display = sesionActual?.rol === 'admin' ? '' : 'none';
+  const counts = {};
+  socios.filter(s => s.ACTIVO !== false).forEach(s => {
+    const a = s.ACADEMIA?.trim() || 'Sin academia';
+    counts[a] = (counts[a] || 0) + 1;
+  });
+  const academias = [...new Set([...Object.keys(counts), ...Object.keys(cuposData)])].sort();
+  const tbody = document.getElementById('tabla-cupos');
+  if (!tbody) return;
+  tbody.innerHTML = academias.map(a => {
+    const inscritos   = counts[a] || 0;
+    const maximo      = cuposData[a] || 0;
+    const disponibles = maximo > 0 ? Math.max(0, maximo - inscritos) : '—';
+    const pct         = maximo > 0 ? Math.round(inscritos / maximo * 100) : 0;
+    const color       = pct >= 100 ? 'var(--red2)' : pct >= 80 ? 'var(--orange)' : 'var(--green2)';
+    const barW        = maximo > 0 ? Math.min(100, pct) : 0;
+    const dispColor   = typeof disponibles === 'number' && disponibles === 0 ? 'var(--red2)' : typeof disponibles === 'number' && disponibles <= 5 ? 'var(--orange)' : 'var(--green2)';
+    return `<tr>
+      <td class="mc">${a}</td>
+      <td style="text-align:center">${maximo > 0 ? maximo : '<span style="color:var(--text3)">Sin límite</span>'}</td>
+      <td style="text-align:center;font-weight:600">${inscritos}</td>
+      <td style="text-align:center;font-weight:700;color:${dispColor}">${disponibles}</td>
+      <td style="min-width:140px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+            <div style="width:${barW}%;height:100%;background:${color};border-radius:4px"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);min-width:32px">${maximo > 0 ? pct+'%' : '—'}</span>
+        </div>
+      </td>
+      ${sesionActual?.rol === 'admin' ? `<td><button class="btn btn-ghost btn-sm" onclick="abrirModalCupos('${a}')">✏️ Editar</button></td>` : '<td></td>'}
+    </tr>`;
+  }).join('');
+  const sinLimite = academias.filter(a => !cuposData[a]).length;
+  document.getElementById('cupos-lbl').textContent = `${academias.length} academias · ${sinLimite} sin límite configurado`;
+}
+
+function abrirModalCupos(academia) {
+  if (sesionActual?.rol !== 'admin') return;
+  cuposEditAcad = academia;
+  document.getElementById('cupos-academia-lbl').textContent = academia;
+  document.getElementById('cupos-max').value = cuposData[academia] || '';
+  document.getElementById('mo-cupos').style.display = 'flex';
+}
+
+function guardarCupos() {
+  const max = parseInt(document.getElementById('cupos-max').value);
+  if (!max || max < 1) { alert('⚠ Ingresa un número válido.'); return; }
+  cuposData[cuposEditAcad] = max;
+  localStorage.setItem('cdu_cupos_v1', JSON.stringify(cuposData));
+  registrarLog('alta', `Cupos: ${cuposEditAcad} → ${max} lugares`, null);
   cerrarMo('mo-cupos');
   renderCupos();
   syncMsg('✅ Cupos actualizados');
