@@ -2677,8 +2677,7 @@ function exportarPrueba() {
   if (!clasesPrueba.length) { alert('No hay clases de prueba registradas.'); return; }
   const hdrs = ['FECHA','NOMBRE','ACADEMIA','DOCUMENTACION','MONTO','REGISTRADO_POR','HORA'];
   const rows = clasesPrueba.map(c => hdrs.map(h => `"${String(c[h]||'').replace(/"/g,'""')}"`).join(','));
-  const csv  = [hdrs.join(','), ...rows].join('
-');
+  const csv  = [hdrs.join(','), ...rows].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}));
   a.download = `clases_prueba_${hoy()}.csv`; a.click();
