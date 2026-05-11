@@ -708,9 +708,10 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:18px 0}
   <div class="tbl-wrap">
     <table>
       <thead><tr>
-        <th>Academia</th><th>Cupo Máximo</th><th>Inscritos</th>
-        <th>Disponibles</th><th>Ocupación</th>
-        <th id="cupos-col-accion" style="display:none">Acciones</th>
+        <th>Categoría</th><th>Edad</th><th>Horarios</th>
+        <th>Cupo Máx</th><th>Inscritos</th><th>Disponibles</th>
+        <th>Mensualidad</th>
+        <th id="cupos-col-accion" style="display:none">Editar</th>
       </tr></thead>
       <tbody id="tabla-cupos"></tbody>
     </table>
@@ -2693,76 +2694,78 @@ function eliminarPrueba(idx) {
 }
 
 // ═══════════════════════════ CUPOS ═══════════════════════════
-let cuposData = JSON.parse(localStorage.getItem('cdu_cupos_v1') || '{}');
-let cuposEditAcad = null;
+const OFERTA={"VOLEIBOL DE SALA":[{"categoria":"CAT 2012-2013","edad":"12-13 Años","horarios":"L,M,V 4:00-6:00PM","cupos":20,"mensualidad":650,"nuevos":0,"desc_est":520},{"categoria":"CAT 2010-2011","edad":"14-15 Años","horarios":"L,M,V 6:00-8:00PM","cupos":20,"mensualidad":650,"nuevos":0,"desc_est":520},{"categoria":"CAT 2008-2009 Varonil","edad":"16-17 Años","horarios":"L,M,V 4:00-6:00PM","cupos":20,"mensualidad":650,"nuevos":0,"desc_est":520},{"categoria":"CAT 2008-2009 Femenil","edad":"16-17 Años","horarios":"L,M,V 6:00-8:00PM","cupos":20,"mensualidad":650,"nuevos":0,"desc_est":520},{"categoria":"Principiantes","edad":"9-12 Años","horarios":"M,J 3:00-4:30PM","cupos":50,"mensualidad":400,"nuevos":0,"desc_est":320},{"categoria":"Intermedios A","edad":"13-17 Años","horarios":"M,J 4:00-5:30PM","cupos":50,"mensualidad":400,"nuevos":0,"desc_est":320},{"categoria":"Intermedios B","edad":"13-17 Años","horarios":"M,J 5:00-6:30PM","cupos":50,"mensualidad":400,"nuevos":0,"desc_est":320},{"categoria":"Avanzados","edad":"18+ Años","horarios":"M,J 7:00-9:00PM","cupos":50,"mensualidad":400,"nuevos":0,"desc_est":320}],"PADEL":[{"categoria":"Turno 1 M,J","edad":"Todos","horarios":"M,J 3:00-4:00PM","cupos":10,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Turno 2 M,J","edad":"Todos","horarios":"M,J 4:00-5:00PM","cupos":10,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Turno 3 M,J","edad":"Todos","horarios":"M,J 5:00-6:00PM","cupos":10,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Turno 4 M,J","edad":"Todos","horarios":"M,J 6:00-7:00PM","cupos":10,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Turno L,M,V Matutino","edad":"Todos","horarios":"L,M,V 3:00-4:00PM","cupos":10,"mensualidad":550,"nuevos":1640,"desc_est":440},{"categoria":"Turno L,M,V Vespertino","edad":"Todos","horarios":"L,M,V 4:00-5:00PM","cupos":10,"mensualidad":550,"nuevos":1640,"desc_est":440},{"categoria":"Avanzado L,M,V","edad":"Todos","horarios":"L,M,V 5:00-7:00PM","cupos":10,"mensualidad":550,"nuevos":1640,"desc_est":440}],"BALONCESTO":[{"categoria":"Pigui","edad":"4-7 Años","horarios":"L,M 5:30-6:30PM","cupos":20,"mensualidad":400,"nuevos":1490,"desc_est":320},{"categoria":"Micro","edad":"8-10 Años","horarios":"L,M 4:00-5:30PM","cupos":20,"mensualidad":400,"nuevos":1490,"desc_est":320},{"categoria":"Mini","edad":"<12 Años","horarios":"L,M 5:30-6:30PM","cupos":20,"mensualidad":400,"nuevos":1490,"desc_est":320},{"categoria":"Juvenil A","edad":"12-14 Años","horarios":"M,J,V 3:00-5:00PM","cupos":20,"mensualidad":600,"nuevos":1690,"desc_est":480},{"categoria":"Juvenil B","edad":"14-17 Años","horarios":"M,J,V 5:00-7:00PM","cupos":20,"mensualidad":600,"nuevos":1690,"desc_est":480},{"categoria":"Juvenil C","edad":"17+ Años","horarios":"M,J,V 7:00-9:00PM","cupos":20,"mensualidad":600,"nuevos":0,"desc_est":480}],"BOX":[{"categoria":"Turno Matutino","edad":"12+ Años","horarios":"L-V 9:00-2:00PM","cupos":50,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Turno Vespertino","edad":"Todos","horarios":"L-V 1:00-8:00PM","cupos":50,"mensualidad":650,"nuevos":1740,"desc_est":520}],"GIMNASIA":[{"categoria":"Iniciacion A","edad":"3-5 Años","horarios":"M,J 3:00-4:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Iniciacion B","edad":"4-6 Años","horarios":"M,J 4:00-5:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Iniciacion C","edad":"5-7 Años","horarios":"M,J 5:00-6:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Iniciacion D","edad":"6-14 Años","horarios":"M,J 5:00-7:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Intermedias 1","edad":"Todos","horarios":"M,J 5:00-7:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Intermedias 2","edad":"Todos","horarios":"L,M,V 3:00-5:00PM","cupos":15,"mensualidad":650,"nuevos":1740,"desc_est":520},{"categoria":"Avanzadas 1","edad":"Todos","horarios":"L-V 3:00-5:00PM","cupos":15,"mensualidad":800,"nuevos":1890,"desc_est":640},{"categoria":"Avanzadas 2","edad":"Todos","horarios":"L-V 5:00-7:00PM","cupos":15,"mensualidad":800,"nuevos":1890,"desc_est":640}],"ATLETISMO":[{"categoria":"Principiantes","edad":"Todos","horarios":"L-V","cupos":30,"mensualidad":500,"nuevos":1140,"desc_est":400},{"categoria":"Intermedios","edad":"Todos","horarios":"Todos","cupos":30,"mensualidad":500,"nuevos":1140,"desc_est":400},{"categoria":"Avanzados","edad":"Todos","horarios":"L-S 3:00-5:00PM","cupos":30,"mensualidad":500,"nuevos":1140,"desc_est":400}],"PORRAS Y ACROBACIA":[{"categoria":"Open Mixto","edad":"14+ Años","horarios":"M,J 6:30-8:00PM","cupos":20,"mensualidad":350,"nuevos":1440,"desc_est":280},{"categoria":"Junior Femenil","edad":"6-16 Años","horarios":"L,M,V","cupos":20,"mensualidad":500,"nuevos":1590,"desc_est":400}],"ZUMBA FITNESS":[{"categoria":"Clase Basico","edad":"9+ Años","horarios":"Varios","cupos":40,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Clase L,M,V","edad":"Todos","horarios":"L,M,V 5:00-6:00PM","cupos":40,"mensualidad":550,"nuevos":1640,"desc_est":440},{"categoria":"Clase Avanzado","edad":"Todos","horarios":"Varios","cupos":40,"mensualidad":800,"nuevos":1890,"desc_est":640}],"PESAS Y TONIFICACION":[{"categoria":"Turno Matutino LAV","edad":"Todos","horarios":"L,M,V 6:00-8:00PM","cupos":30,"mensualidad":450,"nuevos":1540,"desc_est":360},{"categoria":"Turno Vespertino","edad":"Todos","horarios":"7:00-2:00PM","cupos":30,"mensualidad":450,"nuevos":1540,"desc_est":360}]};
+let cuposCustom=JSON.parse(localStorage.getItem('cdu_cupos_v1')||'{}');
+let cuposEditKey=null;
 
 function renderCupos() {
-  // Show/hide accion column based on role
-  const col = document.getElementById('cupos-col-accion');
-  if (col) col.style.display = sesionActual?.rol === 'admin' ? '' : 'none';
-
-  // Count inscritos per academia from socios
-  const counts = {};
-  socios.filter(s => s.ACTIVO !== false).forEach(s => {
-    const a = s.ACADEMIA?.trim() || 'Sin academia';
-    counts[a] = (counts[a] || 0) + 1;
+  var isAdmin = sesionActual && sesionActual.rol === 'admin';
+  var col = document.getElementById('cupos-col-accion');
+  if (col) col.style.display = isAdmin ? '' : 'none';
+  // Count inscritos per academia+categoria
+  var counts = {};
+  socios.filter(function(s){ return s.ACTIVO !== false; }).forEach(function(s) {
+    var key = (s.ACADEMIA||'').trim() + '||' + (s.CATEGORIA||'').trim();
+    counts[key] = (counts[key]||0) + 1;
   });
-
-  const academias = [...new Set([...Object.keys(counts), ...Object.keys(cuposData)])].sort();
-  const tbody = document.getElementById('tabla-cupos');
+  var tbody = document.getElementById('tabla-cupos');
   if (!tbody) return;
-
-  tbody.innerHTML = academias.map(function(a) {
-    var inscritos   = counts[a] || 0;
-    var maximo      = cuposData[a] || 0;
-    var disponibles = maximo > 0 ? Math.max(0, maximo - inscritos) : '-';
-    var pct         = maximo > 0 ? Math.round(inscritos / maximo * 100) : 0;
-    var color       = pct >= 100 ? 'var(--red2)' : pct >= 80 ? 'var(--orange)' : 'var(--green2)';
-    var barW        = maximo > 0 ? Math.min(100, pct) : 0;
-    var dispStr     = typeof disponibles === 'number' ? disponibles : '-';
-    var dispColor   = disponibles === 0 ? 'var(--red2)' : (typeof disponibles === 'number' && disponibles <= 5) ? 'var(--orange)' : 'var(--green2)';
-    var limiteCell  = maximo > 0 ? maximo : '<span style="color:var(--text3)">Sin limite</span>';
-    var pctLabel    = maximo > 0 ? pct + '%' : '-';
-    var editBtn     = sesionActual && sesionActual.rol === 'admin'
-      ? '<button class="btn btn-ghost btn-sm" onclick="abrirModalCupos(\'' + a + '\')">✏️ Editar</button>'
-      : '';
-    return '<tr>' +
-      '<td class="mc">' + a + '</td>' +
-      '<td style="text-align:center">' + limiteCell + '</td>' +
-      '<td style="text-align:center;font-weight:600">' + inscritos + '</td>' +
-      '<td style="text-align:center;font-weight:700;color:' + dispColor + '">' + dispStr + '</td>' +
-      '<td style="min-width:140px"><div style="display:flex;align-items:center;gap:8px">' +
-        '<div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden">' +
-          '<div style="width:' + barW + '%;height:100%;background:' + color + ';border-radius:4px"></div>' +
-        '</div>' +
-        '<span style="font-size:11px;color:var(--text3)">' + pctLabel + '</span>' +
-      '</div></td>' +
-      '<td>' + editBtn + '</td>' +
-    '</tr>';
-  }).join('');
-
-  const total = academias.length;
-  const sinLimite = academias.filter(a => !cuposData[a]).length;
-  document.getElementById('cupos-lbl').textContent = total + ' academias · ' + sinLimite + ' sin límite configurado';
+  var rows = '';
+  Object.keys(OFERTA).forEach(function(acad) {
+    // Academia header
+    rows += '<tr style="background:var(--bg3)"><td colspan="' + (isAdmin?8:7) + '" style="padding:10px 14px;font-family:Bebas Neue,sans-serif;font-size:15px;letter-spacing:1px;color:var(--gold2)">🏅 ' + acad + '</td></tr>';
+    OFERTA[acad].forEach(function(cat) {
+      var key = acad + '||' + cat.categoria;
+      var inscritos = counts[key] || 0;
+      var maximo = cuposCustom[key] !== undefined ? cuposCustom[key] : (cat.cupos||0);
+      var disp = maximo > 0 ? Math.max(0, maximo - inscritos) : '—';
+      var pct  = maximo > 0 ? Math.round(inscritos/maximo*100) : 0;
+      var barC = pct>=100?'var(--red2)':pct>=80?'var(--orange)':'var(--green2)';
+      var dispC= disp===0?'var(--red2)':(typeof disp==='number'&&disp<=5)?'var(--orange)':'var(--green2)';
+      var mens = cat.mensualidad ? '$'+cat.mensualidad.toLocaleString('es-MX') : '—';
+      var editBtn = isAdmin ? '<button class="btn btn-ghost btn-sm" onclick="abrirModalCupos(\'' + key.replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">✏️</button>' : '';
+      rows += '<tr>' +
+        '<td style="padding-left:24px;color:var(--text2);font-size:13px">' + cat.categoria + '</td>' +
+        '<td style="color:var(--text3);font-size:12px">' + (cat.edad||'—') + '</td>' +
+        '<td style="color:var(--text3);font-size:12px">' + (cat.horarios||'—') + '</td>' +
+        '<td style="text-align:center">' + (maximo||'—') + '</td>' +
+        '<td style="text-align:center;font-weight:600">' + inscritos + '</td>' +
+        '<td style="text-align:center;font-weight:700;color:'+dispC+'">' + disp + '</td>' +
+        '<td style="color:var(--green2);font-weight:600">' + mens + '</td>' +
+        (isAdmin ? '<td>' + editBtn + '</td>' : '') +
+        '</tr>';
+    });
+  });
+  tbody.innerHTML = rows;
+  var lbl = document.getElementById('cupos-lbl');
+  if (lbl) lbl.textContent = Object.keys(OFERTA).length + ' academias · ' + Object.values(OFERTA).reduce(function(a,c){return a+c.length;},0) + ' categorias';
 }
 
-function abrirModalCupos(academia) {
-  if (sesionActual?.rol !== 'admin') return;
-  cuposEditAcad = academia;
-  document.getElementById('cupos-academia-lbl').textContent = academia;
-  document.getElementById('cupos-max').value = cuposData[academia] || '';
+
+function abrirModalCupos(key) {
+  if (!sesionActual || sesionActual.rol !== 'admin') return;
+  cuposEditKey = key;
+  var parts = key.split('||');
+  document.getElementById('cupos-academia-lbl').textContent = parts[0] + ' — ' + parts[1];
+  // Find base cupo from OFERTA
+  var base = 0;
+  if (OFERTA[parts[0]]) {
+    var cat = OFERTA[parts[0]].find(function(c){ return c.categoria === parts[1]; });
+    if (cat) base = cat.cupos || 0;
+  }
+  document.getElementById('cupos-max').value = cuposCustom[key] !== undefined ? cuposCustom[key] : base;
   document.getElementById('mo-cupos').style.display = 'flex';
 }
 
 function guardarCupos() {
-  const max = parseInt(document.getElementById('cupos-max').value);
-  if (!max || max < 1) { alert('⚠ Ingresa un número válido mayor a 0.'); return; }
-  cuposData[cuposEditAcad] = max;
-  localStorage.setItem('cdu_cupos_v1', JSON.stringify(cuposData));
-  registrarLog('alta', `Cupos actualizados: ${cuposEditAcad} → ${max} lugares`, null);
+  var max = parseInt(document.getElementById('cupos-max').value);
+  if (!max || max < 1) { alert('Ingresa un numero valido.'); return; }
+  cuposCustom[cuposEditKey] = max;
+  localStorage.setItem('cdu_cupos_v1', JSON.stringify(cuposCustom));
+  registrarLog('alta', 'Cupos: ' + cuposEditKey + ' = ' + max, null);
   cerrarMo('mo-cupos');
   renderCupos();
-  syncMsg('✅ Cupos actualizados');
+  syncMsg('Cupos actualizados');
 }
 
 // Show login on load
